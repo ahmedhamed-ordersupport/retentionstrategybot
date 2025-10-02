@@ -6,6 +6,20 @@
     <title>RetentionBot: Strategy Helper</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Configure Tailwind to use class-based dark mode
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-indigo': '#4f46e5',
+                        'primary-dark-indigo': '#4338ca',
+                    },
+                }
+            }
+        }
+    </script>
     <!-- Load Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -15,42 +29,64 @@
         }
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f8f9fb;
+            /* Default Light Mode Background */
+            background-color: #f8f9fb; 
+        }
+        /* Dark mode background defined by JS adding the 'dark' class */
+        body.dark {
+            background-color: #111827; /* Tailwind gray-900 */
         }
     </style>
 </head>
-<body class="min-h-screen p-4 sm:p-8">
+<!-- Added transition-colors for smooth mode change -->
+<body class="min-h-screen p-4 sm:p-8 transition-colors duration-300"> 
 
     <div class="max-w-4xl mx-auto">
-        <header class="text-center mb-8">
+        <!-- Added 'relative' to position the toggle button -->
+        <header class="text-center mb-8 relative">
+            <!-- Dark Mode Toggle Button -->
+            <button onclick="toggleTheme()" class="absolute right-0 top-0 p-2 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition duration-150 rounded-full">
+                <i id="theme-icon" data-lucide="moon" class="w-6 h-6"></i>
+            </button>
+            
             <div class="flex items-center justify-center space-x-2 text-indigo-600">
                 <i data-lucide="shield-check" class="w-8 h-8"></i>
-                <h1 class="text-3xl font-extrabold text-gray-800">RetentionBot AI</h1>
+                <!-- Added dark mode text color for heading -->
+                <h1 class="text-3xl font-extrabold text-gray-800 dark:text-white">RetentionBot AI</h1>
             </div>
-            <p class="text-gray-500 mt-2">Generate tailored customer save strategies instantly.</p>
+            <!-- Added dark mode text color for subtitle -->
+            <p class="text-gray-500 mt-2 dark:text-gray-300">Generate tailored customer save strategies instantly.</p>
         </header>
 
         <!-- Main Input and Control Area -->
-        <div id="input-section" class="bg-white p-6 rounded-xl shadow-lg border border-indigo-100/50">
-            <h2 class="text-xl font-semibold mb-4 text-gray-700 border-b pb-2">Customer Context</h2>
+        <!-- Added dark mode background and border for input section -->
+        <div id="input-section" class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-indigo-100/50 dark:border-indigo-800/50 transition-colors duration-300">
+            <!-- Added dark mode text color and border color -->
+            <h2 class="text-xl font-semibold mb-4 text-gray-700 dark:text-white border-b pb-2 dark:border-indigo-700">Customer Context</h2>
             
             <div class="space-y-4 mb-6">
                 <!-- Cancellation Reason -->
                 <div>
-                    <label for="cancellationReason" class="block text-sm font-medium text-gray-700 mb-1">Customer's Reason for Cancelling</label>
-                    <textarea id="cancellationReason" rows="3" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3 text-gray-800" placeholder="e.g., 'Price too high, competitor X is cheaper,' or 'Doesn't use Feature Y enough.'"></textarea>
+                    <!-- Added dark mode text color for label -->
+                    <label for="cancellationReason" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Customer's Reason for Cancelling</label>
+                    <!-- Added dark mode styling for textarea -->
+                    <textarea id="cancellationReason" rows="3" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3 text-gray-800 dark:bg-gray-700 dark:text-white dark:border-gray-600" placeholder="e.g., 'Price too high, competitor X is cheaper,' or 'Doesn't use Feature Y enough.'"></textarea>
                 </div>
 
                 <!-- Customer History -->
                 <div>
-                    <label for="customerHistory" class="block text-sm font-medium text-gray-700 mb-1">Customer Tenure and History</label>
-                    <textarea id="customerHistory" rows="2" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3 text-gray-800" placeholder="e.g., '5 years, high LTV, 0 support tickets,' or '2 months, low usage, 5 recent billing complaints.'"></textarea>
+                    <!-- Added dark mode text color for label -->
+                    <label for="customerHistory" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Customer Tenure and History</label>
+                    <!-- Added dark mode styling for textarea -->
+                    <textarea id="customerHistory" rows="2" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3 text-gray-800 dark:bg-gray-700 dark:text-white dark:border-gray-600" placeholder="e.g., '5 years, high LTV, 0 support tickets,' or '2 months, low usage, 5 recent billing complaints.'"></textarea>
                 </div>
                 
                 <!-- Strategy Focus -->
                 <div>
-                    <label for="strategyFocus" class="block text-sm font-medium text-gray-700 mb-1">Desired Strategy Focus</label>
-                    <select id="strategyFocus" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3 text-gray-800">
+                    <!-- Added dark mode text color for label -->
+                    <label for="strategyFocus" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Desired Strategy Focus</label>
+                    <!-- Added dark mode styling for select -->
+                    <select id="strategyFocus" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3 text-gray-800 dark:bg-gray-700 dark:text-white dark:border-gray-600">
                         <option value="Value-Focused">Value-Focused (Focus on hidden benefits/ROI)</option>
                         <option value="Discount-Focused">Discount-Focused (Prioritize price reduction offers)</option>
                         <option value="Product-Focused">Product-Focused (Solve a feature/usability issue)</option>
@@ -80,11 +116,6 @@
     </div>
 
     <script>
-        // Initialize Lucide icons
-        document.addEventListener('DOMContentLoaded', () => {
-            lucide.createIcons();
-        });
-
         const API_KEY = ""; // Canvas will automatically provide this key.
         const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=" + API_KEY;
         const maxRetries = 3;
@@ -112,14 +143,84 @@
             }
         };
 
+        // --- Theme Management ---
+        const THEME_KEY = 'retentionBotTheme';
+
+        /**
+         * Initializes the theme based on local storage or system preference.
+         */
+        function initTheme() {
+            // 1. Check local storage
+            let theme = localStorage.getItem(THEME_KEY);
+
+            // 2. If no preference, check system preference
+            if (!theme) {
+                theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+
+            // 3. Apply the theme
+            applyTheme(theme);
+        }
+
+        /**
+         * Applies the given theme (light or dark) to the body and updates localStorage.
+         * @param {string} theme - 'light' or 'dark'.
+         */
+        function applyTheme(theme) {
+            const body = document.body;
+            if (theme === 'dark') {
+                body.classList.add('dark');
+                localStorage.setItem(THEME_KEY, 'dark');
+            } else {
+                body.classList.remove('dark');
+                localStorage.setItem(THEME_KEY, 'light');
+            }
+            updateThemeIcon(theme);
+            // Re-create lucide icons to ensure theme icon is rendered correctly
+            lucide.createIcons();
+        }
+
+        /**
+         * Toggles the current theme and persists the choice.
+         */
+        function toggleTheme() {
+            const currentTheme = document.body.classList.contains('dark') ? 'dark' : 'light';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            applyTheme(newTheme);
+        }
+
+        /**
+         * Updates the Lucide icon based on the current theme.
+         * @param {string} theme - 'light' or 'dark'.
+         */
+        function updateThemeIcon(theme) {
+            const iconElement = document.getElementById('theme-icon');
+            if (iconElement) {
+                // Remove all lucide data-lucide attributes first
+                if (iconElement.querySelector('svg')) {
+                    iconElement.innerHTML = '';
+                }
+                // Set new icon based on the intended *next* action
+                // Show 'sun' icon when currently dark (user can click to switch to light)
+                iconElement.setAttribute('data-lucide', theme === 'dark' ? 'sun' : 'moon');
+            }
+        }
+
+
         // --- Core Functions ---
 
+        /**
+         * Sets the state of the UI elements (loading, button, error).
+         * @param {boolean} isLoading - Whether the application is currently loading.
+         * @param {string|null} error - The error message to display, if any.
+         */
         function setUIState(isLoading, error = null) {
             const button = document.getElementById('generateButton');
             const loading = document.getElementById('loadingIndicator');
             const errorMsg = document.getElementById('errorMessage');
 
             button.disabled = isLoading;
+            button.classList.toggle('opacity-50', isLoading);
             loading.classList.toggle('hidden', !isLoading);
             errorMsg.classList.add('hidden');
             if (error) {
@@ -128,6 +229,11 @@
             }
         }
 
+        /**
+         * Calls the Gemini API with exponential backoff for retries.
+         * @param {object} payload - The API request body.
+         * @returns {Promise<Array<object>>} - The parsed JSON array of strategies.
+         */
         async function fetchStrategyWithRetry(payload) {
             for (let i = 0; i < maxRetries; i++) {
                 try {
@@ -144,27 +250,32 @@
                             await new Promise(resolve => setTimeout(resolve, delay));
                             continue; // Retry
                         }
-                        throw new Error(`API Request failed with status: ${response.status}`);
+                        const errorData = await response.json();
+                        throw new Error(`API Request failed: ${errorData.error?.message || response.statusText}`);
                     }
 
                     const result = await response.json();
                     const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
                     
                     if (!jsonText) {
-                         throw new Error("Received an empty or malformed response from the AI model.");
+                         throw new Error("Received an empty or malformed response from the AI model. Check system prompt adherence.");
                     }
                     
                     return JSON.parse(jsonText);
 
                 } catch (e) {
+                    // Log the attempt failure but only throw final error after max retries
                     console.error(`Attempt ${i + 1} failed:`, e);
                     if (i === maxRetries - 1) {
-                        throw new Error(`Failed to connect to AI after ${maxRetries} attempts: ${e.message}`);
+                        throw new Error(`Failed to connect to AI after ${maxRetries} attempts. Error: ${e.message}`);
                     }
                 }
             }
         }
 
+        /**
+         * Handles the main logic for generating the retention strategy.
+         */
         async function generateStrategy() {
             setUIState(true);
             document.getElementById('output-section').innerHTML = ''; // Clear previous output
@@ -226,7 +337,7 @@
 
             **Retention Rules & Guidelines:**
             1. **Fitness First:** The core of every talking point must be a specific recommendation (Program, Plan, or Collection) from the KNOWLEDGE BASE that directly addresses the customer's stated problem (lack of motivation, no time, specific fitness goal, etc.).
-            2. **Compliance is Mandatory:** The 'coreOffer' and 'complianceNote' fields **MUST** strictly adhere to the compensation guidelines provided in the KNOWLEDGE BASE based on the cancellation reason (Financial, Lack of Motivation, Delay, etc.). Do not exceed the maximum values listed.
+            2. **Compliance is Mandatory:** The 'coreOffer' and 'complianceNote' fields **MUST** strictly adhere to the compensation guidelines provided in the KNOWLEDGE BASE based on the cancellation reason (Financial, Lack of Motivation, Delay, etc.). Do not exceed the maximum values listed. Use the listed Accessory/Giftbox Options where applicable.
             3. **Empathy & Communication:** All talking points must reflect the 'OS Retention Skills Training' rules: start with empathy, use active listening, and validate their frustration before pivoting to the solution.
             4. **Generate exactly 3 diverse strategies.**
             5. The final output must be a valid JSON array matching the provided schema, with no surrounding text or markdown.
@@ -256,47 +367,56 @@
             }
         }
 
+        /**
+         * Renders the generated strategies into the output area, applying dark mode classes dynamically.
+         * @param {Array<object>} strategies - The array of structured retention strategies.
+         */
         function displayStrategies(strategies) {
             const outputDiv = document.getElementById('output-section');
+            // Added dark mode text color for heading
             outputDiv.innerHTML = `
-                <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-indigo-200 pb-2">Generated Retention Plan</h2>
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-6 border-b-2 border-indigo-200 dark:border-indigo-700 pb-2 transition-colors duration-300">Generated Retention Plan</h2>
             `;
 
             if (!Array.isArray(strategies) || strategies.length === 0) {
-                 outputDiv.innerHTML += '<p class="text-red-500">Could not parse the strategies. Please try a different prompt.</p>';
+                 outputDiv.innerHTML += '<p class="text-red-500">Could not parse the strategies. Please try a different prompt or check the console for API errors.</p>';
                  return;
             }
 
 
             strategies.forEach((strategy, index) => {
                 const strategyElement = document.createElement('div');
-                strategyElement.classList.add('bg-white', 'p-6', 'rounded-xl', 'shadow-xl', 'mb-8', 'border-l-4', 'border-indigo-500');
+                // Added dark mode background and transition
+                strategyElement.classList.add('bg-white', 'dark:bg-gray-800', 'p-6', 'rounded-xl', 'shadow-xl', 'mb-8', 'border-l-4', 'border-indigo-500', 'transition-colors', 'duration-300');
 
-                // Dynamic background for strategy titles
+                // Dynamic properties for strategy titles
                 const titleColor = ['bg-indigo-50', 'bg-blue-50', 'bg-green-50'][index % 3];
                 const iconName = ['trending-up', 'check-circle', 'refresh-cw'][index % 3];
 
+                // Note: The template literal uses the strategy object properties to build the card structure.
                 strategyElement.innerHTML = `
                     <div class="flex items-center space-x-3 mb-4 p-3 rounded-lg ${titleColor}">
                         <i data-lucide="${iconName}" class="w-6 h-6 text-indigo-600"></i>
-                        <h3 class="text-xl font-bold text-gray-800">Strategy ${index + 1}: ${strategy.strategyName}</h3>
+                        <!-- Added dark mode text color for strategy title -->
+                        <h3 class="text-xl font-bold text-gray-800 dark:text-white">${strategy.strategyName}</h3>
                     </div>
 
                     <div class="space-y-6">
                         <!-- Core Offer -->
                         <div class="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
                             <p class="text-sm font-semibold text-indigo-700">CORE SAVE OFFER:</p>
-                            <p class="text-lg font-medium text-gray-800 mt-1">${strategy.coreOffer}</p>
+                            <p class="text-lg font-medium text-gray-800 dark:text-white mt-1">${strategy.coreOffer}</p>
                             <p class="text-xs text-indigo-500 mt-2 font-medium">Compliance Note: ${strategy.complianceNote}</p>
                         </div>
 
                         <!-- Talking Points -->
                         <div>
-                            <p class="text-sm font-semibold text-gray-600 mb-2 flex items-center">
+                            <p class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2 flex items-center">
                                 <i data-lucide="message-square" class="w-4 h-4 mr-2 text-gray-500"></i>
                                 Agent Talking Points (Fitness & Value Focus)
                             </p>
-                            <ul class="list-none space-y-2 text-gray-700">
+                            <!-- Added dark mode text color for talking points list -->
+                            <ul class="list-none space-y-2 text-gray-700 dark:text-white">
                                 ${strategy.talkingPoints.map(point => 
                                     `<li class="flex items-start">
                                         <i data-lucide="chevron-right" class="w-4 h-4 mt-1 mr-2 text-indigo-400 flex-shrink-0"></i>
@@ -311,20 +431,29 @@
                                 <i data-lucide="alert-triangle" class="w-4 h-4 mr-2 text-yellow-600"></i>
                                 LIKELY CUSTOMER REBUTTAL
                             </p>
-                            <p class="text-gray-700 italic">"&quot;${strategy.likelyRebuttal}&quot;"</p>
+                            <!-- Added dark mode text color for italic rebuttal text -->
+                            <p class="text-gray-700 italic dark:text-gray-200">"&quot;${strategy.likelyRebuttal}&quot;"</p>
                             
                             <p class="text-sm font-semibold text-green-700 mt-3 mb-1 flex items-center">
                                 <i data-lucide="zap" class="w-4 h-4 mr-2 text-green-600"></i>
                                 AGENT RESPONSE
                             </p>
-                            <p class="text-gray-800 font-medium">${strategy.rebuttalResponse}</p>
+                            <!-- Added dark mode text color for response text -->
+                            <p class="text-gray-800 font-medium dark:text-white">${strategy.rebuttalResponse}</p>
                         </div>
                     </div>
                 `;
                 outputDiv.appendChild(strategyElement);
             });
-            lucide.createIcons(); // Re-initialize icons for new elements
+            // Re-initialize icons so the data-lucide attributes in the generated HTML are rendered.
+            lucide.createIcons(); 
         }
+
+        // Initialize theme and icons when the content is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme(); 
+            lucide.createIcons();
+        });
     </script>
 </body>
 </html>
