@@ -61,6 +61,17 @@
         <!-- Main Input and Control Area -->
         <!-- Added dark mode background and border for input section -->
         <div id="input-section" class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-indigo-100/50 dark:border-indigo-800/50 transition-colors duration-300">
+            <!-- NEW: Cancellation Type Selector -->
+            <div class="space-y-4 mb-6">
+                <div>
+                    <label for="cancellationType" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cancellation Type</label>
+                    <select id="cancellationType" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3 text-gray-800 dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                        <option value="Membership">Membership Cancellation (Subscription/App Access)</option>
+                        <option value="Order/Return">Order or Return Request (Studio/Move Hardware)</option>
+                    </select>
+                </div>
+            </div>
+            
             <!-- Added dark mode text color and border color -->
             <h2 class="text-xl font-semibold mb-4 text-gray-700 dark:text-white border-b pb-2 dark:border-indigo-700">Customer Context</h2>
             
@@ -283,6 +294,7 @@
             const reason = document.getElementById('cancellationReason').value.trim();
             const history = document.getElementById('customerHistory').value.trim();
             const focus = document.getElementById('strategyFocus').value;
+            const type = document.getElementById('cancellationType').value; // Get the new cancellation type
 
             if (!reason || !history) {
                 setUIState(false, "Please fill in both the reason for cancellation and customer history.");
@@ -290,71 +302,67 @@
             }
 
             // --- CRITICAL CHECK FOR EXTERNAL HOSTING ---
-            // The API key is now set, so this check will only be triggered if the key is explicitly blank.
-            // It serves as a visual reminder/check for users running outside the Canvas environment.
             if (API_KEY === "") {
                 setUIState(false, "API Configuration Error: The AI service failed to authenticate. If running externally, please ensure your Gemini API key is configured.");
                 return;
             }
 
-            // --- ALL ATTACHED DATA AS KNOWLEDGE BASE ---
+            // --- ALL ATTACHED DATA AS KNOWLEDGE BASE (MERGED with WinBack Tool Kit) ---
             const concessionData = `
-                Concession Guidelines (for Studio/Membership):
-                - Cx canceling for financial issues/affordability (Membership): up to 1 Month or 25% discount for 4 months. MAXIMUM: 50% discount for 3 months or 25% for 6 months. Suggest pause option.
-                - Cx canceling for financial issues (Studio): Up to 2 months subscription credit OR discount and a Giftbox (accessories giveaway higher than $100 after approval only). Suggest current promotions eligibility.
-                - Cx returning for Financial issues (Studio): Up to 2 months of subscription credit or discount and a Giftbox (accessories giveaway after approval only). Can offer 50% discount for 4 months maximum or pause.
-                - Cx canceling for not finding suitable classes/lacking motivation (Membership): 1 Month or accessory less than $40. Suggest workout challenges, programs, and remind them of their initial Tempo purchase reason.
-                - Cx canceling for Delivery delays (Studio): 2 weeks past website ETA: 1 Month free. 4 weeks past website ETA: 2 Months free (accessories giveaway after approval only). Suggest escalation and support.
-                - Cx canceling for Delivery delays/other return reasons (Move): Up to 1 month subscription credit and a Giftbox or accessory that cost less than $50.
-                - Cx returning for Wrong color unit (Studio): $100 up to $300 refund OR subscription discount up to 3 months. Suggest refund to save hassle of replacement.
-
-                Accessories/Giftbox Options (Prices are internal guidelines):
-                - Workout Mat: $30.00
-                - Resistance Bands (Set of 4): $21.95
-                - Wrist Heart Rate Monitor: $39.00
-                - Tempo Competition Plates 25 lbs. (Set of 2): $128.48
+                --- COMPLIANCE & COMPENSATION RULES (HARD LIMITS) ---
                 
-                BYOD & Tempo Trainer Compensation:
-                - BYOD members canceling (support, financial, content): 1 Month or 25% discount for 4 months. MAXIMUM: 50% discount for 3 months or 25% for 6 months.
-                - Tempo Trainer members canceling: Giftbox.
+                // --- MEMBERSHIP CANCELLATION RULES (SUBSCRIPTION) ---
+                - Financial/Affordability (Membership): up to 1 Month free OR 25% discount for 4 months. MAXIMUM: 50% discount for 3 months OR 25% for 6 months. Suggest Pause Option.
+                - Lack of motivation/Suitable classes (Membership): 1 Month free OR accessory < $40 (Workout Mat, Bands, Heart Rate Monitor). Suggest challenges/programs.
+                - BYOD/Tempo Trainer: Follow above Membership rules. Tempo Trainer members may receive a Giftbox.
 
-                ---
-                
-                Training Plans/Programs & Collections (Active, for recommendation):
-                - Goal: Gain Strength - Programs: Foundations of Growth (2 weeks, Intermediate, 🔥), Complete Core (6 days, Intermediate), Sculpt & Shred (6 weeks, Advanced, 🔥🔥🔥).
-                - Goal: Lose Weight - Programs: Metabolic Meltdown (quick, full body, 🔥🔥), 2 Weeks to a Healthier Me (build habit, core, cardio, 🔥🔥).
-                - Goal: Get Toned - Programs: Building a Powerful Chest (Upper Body, Get stronger), Sculpting your Triceps (Upper Body), Transforming your Quads (Lower Body).
-                - Collections (Good for motivation/challenges): Coach Alex’s Full Body Favs, Vacation Mode 🏖️ (Seasonal/Travel), Strength Quickies (Short classes), Fall Classics (Seasonal), Flow and Restore (Reinvigorate/relax).
+                // --- ORDER / RETURN CANCELLATION RULES (HARDWARE/STUDIO/MOVE) ---
+                - Financial (Studio/Hardware): Up to 2 months subscription credit OR discount + Giftbox ($100+ after approval). Can offer 50% discount for 4 months max or pause.
+                - Delivery delays (Studio): 2 weeks past ETA: 1 Month free. 4 weeks past ETA: 2 Months free (accessories giveaway after approval only).
+                - Delivery delays/other return reasons (Move): Up to 1 month subscription credit + accessory < $50.
+                - Returning for Wrong color unit (Studio): $100 up to $300 refund OR subscription discount up to 3 months.
 
-                ---
+                --- WINBACK TOOLKIT FRAMEWORK (PERSONALIZATION FOR MEMBERSHIP) ---
                 
-                OS Retention Skills Training (Communication & Empathy Rules):
-                - Preparation: Complete preparations before the call (calculations, root cause, expected ETA for delays).
-                - Effective Communication: Use active listening, mirroring, and empathy. Use phrases such as "tell me more” or "help me understand.” Summarize feedback to show understanding.
-                - Rapport: Call the customer by name. Make them feel valued by demonstrating understanding of their challenges and context and that you want to know more.
-                - Objections: Be ready for objections.
-                - Professionalism: Don't make promises you can't keep.
+                // Winback Patterns for Injury/Dormancy (Membership Focus):
+                - Pattern A ("Active before injury"): Focus on strength built. Offer recovery tools (phone-only, 10-15m classes, injury mods). Use offer: Tempo Bands set + 25% off for 4 months.
+                - Pattern B ("Long-time member but dormant"): Focus on no-judgment, easy restart. Highlight 10-15 min sessions. Use Offer: Tempo Bands set + 25% off for 4 months.
+                - Pattern C ("New member - barely used, injured"): Focus on bad timing. Highlight short, safe ways to try. Use Offer: 1 free month or 50% off for 2 months + yoga starter kit.
+                - Pattern D ("Started strong then lost motivation"): Focus on nostalgia, reclaiming spark. Highlight low-impact flows, micro-sessions. Use Offer: yoga kit + 25% off for 3 months.
+
+                --- CONTENT & ACCESSORIES (FOR RECOMMENDATIONS) ---
+
+                - Accessories: Workout Mat ($30), Resistance Bands Set ($21.95), Wrist Heart Rate Monitor ($39), Yoga Starter Kit (Strap, Block, Roller).
+                - Recovery & Low-Impact Programs: Improved Mobility, Stretch/Meditate/Recover, Beginner’s Yoga, Phone-Only Mode, 10-Min Meditation, Low-impact search filter.
+                - Strength & Habit Programs: Foundations of Growth, Complete Core, Metabolic Meltdown, 2 Weeks to a Healthier Me.
+
+                --- POLICY REFERENCE ---
+                - Policies are governed by: Cancellations & Returns, Tempo Move FAQs, Tempo Experience FAQs, Product Specs.
             `;
 
 
             // --- ENHANCED SYSTEM PROMPT ---
-            const systemPrompt = `You are a world-class Customer Retention Specialist and a master of turning cancellations into long-term customer loyalty at a premium fitness company. Your primary goal is to re-engage the member with fitness goals and content, using financial concessions as a secondary, compliant tool to facilitate re-engagement.
+            const systemPrompt = `You are a world-class Customer Retention Specialist and a master of turning cancellations into long-term customer loyalty at a premium fitness company. Your core duty is to create **highly personalized** strategies.
             
             **KNOWLEDGE BASE:**
             ${concessionData}
 
             **Retention Rules & Guidelines:**
-            1. **Fitness First:** The core of every talking point must be a specific recommendation (Program, Plan, or Collection) from the KNOWLEDGE BASE that directly addresses the customer's stated problem (lack of motivation, no time, specific fitness goal, etc.).
-            2. **Compliance is Mandatory:** The 'coreOffer' and 'complianceNote' fields **MUST** strictly adhere to the compensation guidelines provided in the KNOWLEDGE BASE based on the cancellation reason (Financial, Lack of Motivation, Delay, etc.). Do not exceed the maximum values listed. Use the listed Accessory/Giftbox Options where applicable.
-            3. **Empathy & Communication:** All talking points must reflect the 'OS Retention Skills Training' rules: start with empathy, use active listening, and validate their frustration before pivoting to the solution.
-            4. **Generate exactly 3 diverse strategies.**
-            5. The final output must be a valid JSON array matching the provided schema, with no surrounding text or markdown.
+            1. **Conciseness is Critical:** Generate all text fields (strategyName, coreOffer, talkingPoints, rebuttalResponse, complianceNote) **as concisely as possible** to ensure the entire JSON response fits within the character limits. Avoid verbose, multi-sentence descriptions where a short, clear phrase will suffice.
+            2. **Personalization & Pattern:** Based on the 'Customer Tenure/History' and 'Cancellation Reason', determine which 'Winback Pattern' or 'Compliance Rule' in the KNOWLEDGE BASE is most relevant. The talking points must be highly tailored, using the customer's specific history/issue (e.g., 'your 700 classes' or 'the delivery delay') to structure the pitch.
+            3. **Strategy Type Differentiation:**
+               - If **Cancellation Type is 'Membership'**: The strategy must focus on re-engagement using fitness content and programs (Fitness First), supported by a compliant concession (using Winback Patterns).
+               - If **Cancellation Type is 'Order/Return'**: The strategy must focus on de-escalation, solving the hardware/logistics issue, and offering compliant credits/refunds/gifts (using Order/Return Compliance Rules).
+            4. **Compliance is Mandatory:** The 'coreOffer' and 'complianceNote' fields **MUST** strictly adhere to the compensation rules (HARD LIMITS) based on the *Cancellation Type* and *Reason*.
+            5. **Generate exactly 3 diverse strategies.**
+            6. The final output must be a valid JSON array matching the provided schema, with no surrounding text or markdown.
             `;
             
             const userQuery = `Customer Cancellation Reason: ${reason}.
             Customer Tenure/History: ${history}.
+            Cancellation Type: ${type}.
             
-            Generate 3 retention strategies focusing on the ${focus} approach. The core retention strategy must be a fitness solution, supported by a compliant financial concession.`;
+            Generate 3 retention strategies focusing on the ${focus} approach.`;
 
             const payload = {
                 contents: [{ parts: [{ text: userQuery }] }],
