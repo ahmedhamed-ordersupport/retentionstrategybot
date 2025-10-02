@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RetentionBot: Strategy Helper</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fb;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 sm:p-8">
+
+    <div class="max-w-4xl mx-auto">
+        <header class="text-center mb-8">
+            <div class="flex items-center justify-center space-x-2 text-indigo-600">
+                <i data-lucide="shield-check" class="w-8 h-8"></i>
+                <h1 class="text-3xl font-extrabold text-gray-800">RetentionBot AI</h1>
+            </div>
+            <p class="text-gray-500 mt-2">Generate tailored customer save strategies instantly.</p>
+        </header>
+
+        <!-- Main Input and Control Area -->
+        <div id="input-section" class="bg-white p-6 rounded-xl shadow-lg border border-indigo-100/50">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700 border-b pb-2">Customer Context</h2>
+            
+            <div class="space-y-4 mb-6">
+                <!-- Cancellation Reason -->
+                <div>
+                    <label for="cancellationReason" class="block text-sm font-medium text-gray-700 mb-1">Customer's Reason for Cancelling</label>
+                    <textarea id="cancellationReason" rows="3" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3 text-gray-800" placeholder="e.g., 'Price too high, competitor X is cheaper,' or 'Doesn't use Feature Y enough.'"></textarea>
+                </div>
+
+                <!-- Customer History -->
+                <div>
+                    <label for="customerHistory" class="block text-sm font-medium text-gray-700 mb-1">Customer Tenure and History</label>
+                    <textarea id="customerHistory" rows="2" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3 text-gray-800" placeholder="e.g., '5 years, high LTV, 0 support tickets,' or '2 months, low usage, 5 recent billing complaints.'"></textarea>
+                </div>
+                
+                <!-- Strategy Focus -->
+                <div>
+                    <label for="strategyFocus" class="block text-sm font-medium text-gray-700 mb-1">Desired Strategy Focus</label>
+                    <select id="strategyFocus" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3 text-gray-800">
+                        <option value="Value-Focused">Value-Focused (Focus on hidden benefits/ROI)</option>
+                        <option value="Discount-Focused">Discount-Focused (Prioritize price reduction offers)</option>
+                        <option value="Product-Focused">Product-Focused (Solve a feature/usability issue)</option>
+                        <option value="Pause-Retention">Pause/Retention (Temporary solution to save relationship)</option>
+                    </select>
+                </div>
+            </div>
+
+            <button onclick="generateStrategy()" id="generateButton" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition duration-150 shadow-md flex items-center justify-center disabled:bg-indigo-400">
+                <i data-lucide="sparkles" class="w-5 h-5 mr-2"></i>
+                Generate Save Strategies
+            </button>
+            
+            <div id="loadingIndicator" class="hidden mt-4 text-center text-indigo-600 font-medium">
+                <div class="inline-block animate-spin rounded-full h-6 w-6 border-4 border-indigo-500 border-t-transparent mr-2"></div>
+                Analyzing data and generating personalized scripts...
+            </div>
+            
+            <p id="errorMessage" class="hidden mt-4 text-center text-red-600 font-medium"></p>
+        </div>
+
+        <!-- Output Area for Strategies -->
+        <div id="output-section" class="mt-8">
+            <!-- Strategies will be inserted here -->
+        </div>
+
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+        });
+
+        const API_KEY = ""; // Canvas will automatically provide this key.
+        const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=" + API_KEY;
+        const maxRetries = 3;
+
+        // --- JSON Schema for Structured Output ---
+        const retentionSchema = {
+            type: "ARRAY",
+            description: "A list of 3 distinct customer retention strategies.",
+            items: {
+                type: "OBJECT",
+                properties: {
+                    "strategyName": { "type": "STRING", "description": "A concise, actionable title for the strategy (e.g., 'The Value Re-Pitch')." },
+                    "coreOffer": { "type": "STRING", "description": "The specific proposal to save the customer (e.g., '30% off for 3 months')." },
+                    "talkingPoints": {
+                        "type": "ARRAY",
+                        "description": "3-5 scripted bullet points focusing on value and empathy for the agent to use.",
+                        "items": { "type": "STRING" }
+                    },
+                    "likelyRebuttal": { "type": "STRING", "description": "Anticipate a likely counter-argument from the customer." },
+                    "rebuttalResponse": { "type": "STRING", "description": "A prepared response to handle the rebuttal." }
+                },
+                required: ["strategyName", "coreOffer", "talkingPoints", "likelyRebuttal", "rebuttalResponse"],
+                propertyOrdering: ["strategyName", "coreOffer", "talkingPoints", "likelyRebuttal", "rebuttalResponse"]
+            }
+        };
+
+        // --- Core Functions ---
+
+        function setUIState(isLoading, error = null) {
+            const button = document.getElementById('generateButton');
+            const loading = document.getElementById('loadingIndicator');
+            const errorMsg = document.getElementById('errorMessage');
+
+            button.disabled = isLoading;
+            loading.classList.toggle('hidden', !isLoading);
+            errorMsg.classList.add('hidden');
+            if (error) {
+                errorMsg.textContent = error;
+                errorMsg.classList.remove('hidden');
+            }
+        }
+
+        async function fetchStrategyWithRetry(payload) {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 429 && i < maxRetries - 1) {
+                            // Too Many Requests, implement exponential backoff
+                            const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                            continue; // Retry
+                        }
+                        throw new Error(`API Request failed with status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    
+                    if (!jsonText) {
+                         throw new Error("Received an empty or malformed response from the AI model.");
+                    }
+                    
+                    return JSON.parse(jsonText);
+
+                } catch (e) {
+                    console.error(`Attempt ${i + 1} failed:`, e);
+                    if (i === maxRetries - 1) {
+                        throw new Error(`Failed to connect to AI after ${maxRetries} attempts: ${e.message}`);
+                    }
+                }
+            }
+        }
+
+        async function generateStrategy() {
+            setUIState(true);
+            document.getElementById('output-section').innerHTML = ''; // Clear previous output
+
+            const reason = document.getElementById('cancellationReason').value.trim();
+            const history = document.getElementById('customerHistory').value.trim();
+            const focus = document.getElementById('strategyFocus').value;
+
+            if (!reason || !history) {
+                setUIState(false, "Please fill in both the reason for cancellation and customer history.");
+                return;
+            }
+
+            const systemPrompt = `You are a world-class Customer Retention Specialist. Your task is to analyze the context provided by the agent and generate 3 distinct, highly effective, and empathetic retention strategies. The strategies must be structured as a JSON array. Focus on the specified strategy focus: ${focus}.
+            
+            **Guidelines:**
+            1. Generate exactly 3 strategies.
+            2. Each strategy must include a core offer and 3-5 scripted 'talking points' focusing on value, not just discounts.
+            3. For each strategy, anticipate a common customer rebuttal and provide the agent with a firm, professional, and prepared response.
+            4. The response must be a valid JSON array matching the provided schema, with no surrounding text or markdown.
+            `;
+            
+            const userQuery = `Customer Cancellation Reason: ${reason}.
+            Customer Tenure/History: ${history}.
+            
+            Generate 3 strategies focusing on the ${focus} approach.`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: retentionSchema
+                }
+            };
+
+            try {
+                const strategies = await fetchStrategyWithRetry(payload);
+                displayStrategies(strategies);
+            } catch (e) {
+                setUIState(false, e.message);
+            } finally {
+                setUIState(false);
+            }
+        }
+
+        function displayStrategies(strategies) {
+            const outputDiv = document.getElementById('output-section');
+            outputDiv.innerHTML = `
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-indigo-200 pb-2">Generated Retention Plan</h2>
+            `;
+
+            if (!Array.isArray(strategies) || strategies.length === 0) {
+                 outputDiv.innerHTML += '<p class="text-red-500">Could not parse the strategies. Please try a different prompt.</p>';
+                 return;
+            }
+
+
+            strategies.forEach((strategy, index) => {
+                const strategyElement = document.createElement('div');
+                strategyElement.classList.add('bg-white', 'p-6', 'rounded-xl', 'shadow-xl', 'mb-8', 'border-l-4', 'border-indigo-500');
+
+                // Dynamic background for strategy titles
+                const titleColor = ['bg-indigo-50', 'bg-blue-50', 'bg-green-50'][index % 3];
+                const iconName = ['trending-up', 'check-circle', 'refresh-cw'][index % 3];
+
+                strategyElement.innerHTML = `
+                    <div class="flex items-center space-x-3 mb-4 p-3 rounded-lg ${titleColor}">
+                        <i data-lucide="${iconName}" class="w-6 h-6 text-indigo-600"></i>
+                        <h3 class="text-xl font-bold text-gray-800">Strategy ${index + 1}: ${strategy.strategyName}</h3>
+                    </div>
+
+                    <div class="space-y-6">
+                        <!-- Core Offer -->
+                        <div class="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                            <p class="text-sm font-semibold text-indigo-700">CORE SAVE OFFER:</p>
+                            <p class="text-lg font-medium text-gray-800 mt-1">${strategy.coreOffer}</p>
+                        </div>
+
+                        <!-- Talking Points -->
+                        <div>
+                            <p class="text-sm font-semibold text-gray-600 mb-2 flex items-center">
+                                <i data-lucide="message-square" class="w-4 h-4 mr-2 text-gray-500"></i>
+                                Agent Talking Points (Value Focus)
+                            </p>
+                            <ul class="list-none space-y-2 text-gray-700">
+                                ${strategy.talkingPoints.map(point => 
+                                    `<li class="flex items-start">
+                                        <i data-lucide="chevron-right" class="w-4 h-4 mt-1 mr-2 text-indigo-400 flex-shrink-0"></i>
+                                        <span>${point}</span>
+                                    </li>`).join('')}
+                            </ul>
+                        </div>
+
+                        <!-- Rebuttal Handling -->
+                        <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <p class="text-sm font-semibold text-yellow-700 mb-1 flex items-center">
+                                <i data-lucide="alert-triangle" class="w-4 h-4 mr-2 text-yellow-600"></i>
+                                LIKELY CUSTOMER REBUTTAL
+                            </p>
+                            <p class="text-gray-700 italic">"&quot;${strategy.likelyRebuttal}&quot;"</p>
+                            
+                            <p class="text-sm font-semibold text-green-700 mt-3 mb-1 flex items-center">
+                                <i data-lucide="zap" class="w-4 h-4 mr-2 text-green-600"></i>
+                                AGENT RESPONSE
+                            </p>
+                            <p class="text-gray-800 font-medium">${strategy.rebuttalResponse}</p>
+                        </div>
+                    </div>
+                `;
+                outputDiv.appendChild(strategyElement);
+            });
+            lucide.createIcons(); // Re-initialize icons for new elements
+        }
+    </script>
+</body>
+</html>
