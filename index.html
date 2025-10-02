@@ -100,14 +100,15 @@
                     "coreOffer": { "type": "STRING", "description": "The specific proposal to save the customer (e.g., '30% off for 3 months')." },
                     "talkingPoints": {
                         "type": "ARRAY",
-                        "description": "3-5 scripted bullet points focusing on value and empathy for the agent to use.",
+                        "description": "3-5 scripted bullet points focusing on value and empathy for the agent to use, and incorporating relevant product recommendations or next steps.",
                         "items": { "type": "STRING" }
                     },
                     "likelyRebuttal": { "type": "STRING", "description": "Anticipate a likely counter-argument from the customer." },
-                    "rebuttalResponse": { "type": "STRING", "description": "A prepared response to handle the rebuttal." }
+                    "rebuttalResponse": { "type": "STRING", "description": "A prepared response to handle the rebuttal." },
+                    "complianceNote": { "type": "STRING", "description": "A quick note confirming the offer is within the bounds of the compensation guidelines."}
                 },
-                required: ["strategyName", "coreOffer", "talkingPoints", "likelyRebuttal", "rebuttalResponse"],
-                propertyOrdering: ["strategyName", "coreOffer", "talkingPoints", "likelyRebuttal", "rebuttalResponse"]
+                required: ["strategyName", "coreOffer", "talkingPoints", "likelyRebuttal", "rebuttalResponse", "complianceNote"],
+                propertyOrdering: ["strategyName", "coreOffer", "talkingPoints", "likelyRebuttal", "rebuttalResponse", "complianceNote"]
             }
         };
 
@@ -177,19 +178,64 @@
                 return;
             }
 
-            const systemPrompt = `You are a world-class Customer Retention Specialist. Your task is to analyze the context provided by the agent and generate 3 distinct, highly effective, and empathetic retention strategies. The strategies must be structured as a JSON array. Focus on the specified strategy focus: ${focus}.
+            // --- ALL ATTACHED DATA AS KNOWLEDGE BASE ---
+            const concessionData = `
+                Concession Guidelines (for Studio/Membership):
+                - Cx canceling for financial issues/affordability (Membership): up to 1 Month or 25% discount for 4 months. MAXIMUM: 50% discount for 3 months or 25% for 6 months. Suggest pause option.
+                - Cx canceling for financial issues (Studio): Up to 2 months subscription credit OR discount and a Giftbox (accessories giveaway higher than $100 after approval only). Suggest current promotions eligibility.
+                - Cx returning for Financial issues (Studio): Up to 2 months of subscription credit or discount and a Giftbox (accessories giveaway after approval only). Can offer 50% discount for 4 months maximum or pause.
+                - Cx canceling for not finding suitable classes/lacking motivation (Membership): 1 Month or accessory less than $40. Suggest workout challenges, programs, and remind them of their initial Tempo purchase reason.
+                - Cx canceling for Delivery delays (Studio): 2 weeks past website ETA: 1 Month free. 4 weeks past website ETA: 2 Months free (accessories giveaway after approval only). Suggest escalation and support.
+                - Cx canceling for Delivery delays/other return reasons (Move): Up to 1 month subscription credit and a Giftbox or accessory less than $50.
+                - Cx returning for Wrong color unit (Studio): $100 up to $300 refund OR subscription discount up to 3 months. Suggest refund to save hassle of replacement.
+
+                Accessories/Giftbox Options (Prices are internal guidelines):
+                - Workout Mat: $30.00
+                - Resistance Bands (Set of 4): $21.95
+                - Wrist Heart Rate Monitor: $39.00
+                - Tempo Competition Plates 25 lbs. (Set of 2): $128.48
+                
+                BYOD & Tempo Trainer Compensation:
+                - BYOD members canceling (support, financial, content): 1 Month or 25% discount for 4 months. MAXIMUM: 50% discount for 3 months or 25% for 6 months.
+                - Tempo Trainer members canceling: Giftbox.
+
+                ---
+                
+                Training Plans/Programs & Collections (Active, for recommendation):
+                - Goal: Gain Strength - Programs: Foundations of Growth (2 weeks, Intermediate, 🔥), Complete Core (6 days, Intermediate), Sculpt & Shred (6 weeks, Advanced, 🔥🔥🔥).
+                - Goal: Lose Weight - Programs: Metabolic Meltdown (quick, full body, 🔥🔥), 2 Weeks to a Healthier Me (build habit, core, cardio, 🔥🔥).
+                - Goal: Get Toned - Programs: Building a Powerful Chest (Upper Body, Get stronger), Sculpting your Triceps (Upper Body), Transforming your Quads (Lower Body).
+                - Collections (Good for motivation/challenges): Coach Alex’s Full Body Favs, Vacation Mode 🏖️ (Seasonal/Travel), Strength Quickies (Short classes), Fall Classics (Seasonal), Flow and Restore (Reinvigorate/relax).
+
+                ---
+                
+                OS Retention Skills Training (Communication & Empathy Rules):
+                - Preparation: Complete preparations before the call (calculations, root cause, expected ETA for delays).
+                - Effective Communication: Use active listening, mirroring, and empathy. Use phrases like "tell me more” or "help me understand.” Summarize feedback to show understanding.
+                - Rapport: Call the customer by name. Make them feel valued by demonstrating understanding of their challenges and context.
+                - Objections: Be ready for objections.
+                - Professionalism: Don't make promises you can't keep.
+            `;
+
+
+            // --- ENHANCED SYSTEM PROMPT ---
+            const systemPrompt = `You are a world-class Customer Retention Specialist and a master of turning cancellations into long-term customer loyalty at a premium fitness company. Your primary goal is to re-engage the member with fitness goals and content, using financial concessions as a secondary, compliant tool to facilitate re-engagement.
             
-            **Guidelines:**
-            1. Generate exactly 3 strategies.
-            2. Each strategy must include a core offer and 3-5 scripted 'talking points' focusing on value, not just discounts.
-            3. For each strategy, anticipate a common customer rebuttal and provide the agent with a firm, professional, and prepared response.
-            4. The response must be a valid JSON array matching the provided schema, with no surrounding text or markdown.
+            **KNOWLEDGE BASE:**
+            ${concessionData}
+
+            **Retention Rules & Guidelines:**
+            1. **Fitness First:** The core of every talking point must be a specific recommendation (Program, Plan, or Collection) from the KNOWLEDGE BASE that directly addresses the customer's stated problem (lack of motivation, no time, specific fitness goal, etc.).
+            2. **Compliance is Mandatory:** The 'coreOffer' and 'complianceNote' fields **MUST** strictly adhere to the compensation guidelines provided in the KNOWLEDGE BASE based on the cancellation reason (Financial, Lack of Motivation, Delay, etc.). Do not exceed the maximum values listed.
+            3. **Empathy & Communication:** All talking points must reflect the 'OS Retention Skills Training' rules: start with empathy, use open-ended language ("Help me understand..."), and validate their frustration.
+            4. **Generate exactly 3 diverse strategies.**
+            5. The final output must be a valid JSON array matching the provided schema, with no surrounding text or markdown.
             `;
             
             const userQuery = `Customer Cancellation Reason: ${reason}.
             Customer Tenure/History: ${history}.
             
-            Generate 3 strategies focusing on the ${focus} approach.`;
+            Generate 3 retention strategies focusing on the ${focus} approach. The core retention strategy must be a fitness solution, supported by a compliant financial concession.`;
 
             const payload = {
                 contents: [{ parts: [{ text: userQuery }] }],
@@ -241,13 +287,14 @@
                         <div class="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
                             <p class="text-sm font-semibold text-indigo-700">CORE SAVE OFFER:</p>
                             <p class="text-lg font-medium text-gray-800 mt-1">${strategy.coreOffer}</p>
+                            <p class="text-xs text-indigo-500 mt-2 font-medium">Compliance Note: ${strategy.complianceNote}</p>
                         </div>
 
                         <!-- Talking Points -->
                         <div>
                             <p class="text-sm font-semibold text-gray-600 mb-2 flex items-center">
                                 <i data-lucide="message-square" class="w-4 h-4 mr-2 text-gray-500"></i>
-                                Agent Talking Points (Value Focus)
+                                Agent Talking Points (Fitness & Value Focus)
                             </p>
                             <ul class="list-none space-y-2 text-gray-700">
                                 ${strategy.talkingPoints.map(point => 
