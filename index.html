@@ -116,7 +116,7 @@
     </div>
 
     <script>
-        const API_KEY = ""; // Canvas will automatically provide this key.
+        const API_KEY = "AIzaSyDHGPN_VAJI6f_Ehld1QW_dNbIUpRf33lM"; // API key inserted here
         const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=" + API_KEY;
         const maxRetries = 3;
 
@@ -286,6 +286,14 @@
 
             if (!reason || !history) {
                 setUIState(false, "Please fill in both the reason for cancellation and customer history.");
+                return;
+            }
+
+            // --- CRITICAL CHECK FOR EXTERNAL HOSTING ---
+            // The API key is now set, so this check will only be triggered if the key is explicitly blank.
+            // It serves as a visual reminder/check for users running outside the Canvas environment.
+            if (API_KEY === "") {
+                setUIState(false, "API Configuration Error: The AI service failed to authenticate. If running externally, please ensure your Gemini API key is configured.");
                 return;
             }
 
