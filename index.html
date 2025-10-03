@@ -36,6 +36,10 @@
         body.dark {
             background-color: #111827; /* Tailwind gray-900 */
         }
+        .email-display {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
     </style>
 </head>
 <!-- Added transition-colors for smooth mode change -->
@@ -121,9 +125,28 @@
             <p id="errorMessage" class="hidden mt-4 text-center text-red-600 font-medium"></p>
         </div>
 
-        <!-- Output Area for Strategies -->
+        <!-- Output Area for Strategies (Step 1) -->
         <div id="output-section" class="mt-8">
             <!-- Strategies will be inserted here -->
+        </div>
+
+        <!-- Email Crafter Section (Step 2) -->
+        <div id="email-crafter-section" class="hidden mt-8 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-green-100/50 dark:border-green-800/50 transition-colors duration-300">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 border-b-2 border-green-400 pb-2 flex items-center">
+                <i data-lucide="mail-check" class="w-6 h-6 mr-2 text-green-600"></i>
+                Expert Winback Email Draft
+            </h2>
+            <div id="email-loading-indicator" class="hidden text-center text-green-600 font-medium my-4">
+                <div class="inline-block animate-spin rounded-full h-6 w-6 border-4 border-green-500 border-t-transparent mr-2"></div>
+                Crafting personalized copy...
+            </div>
+            <div id="email-output" class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-800 dark:text-white email-display">
+                <!-- Drafted email will go here -->
+            </div>
+            <button onclick="copyEmailToClipboard()" id="copyEmailButton" class="mt-4 w-full bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700 transition duration-150 shadow-md flex items-center justify-center">
+                <i data-lucide="clipboard" class="w-5 h-5 mr-2"></i>
+                Copy Email to Clipboard
+            </button>
         </div>
 
     </div>
@@ -156,29 +179,23 @@
             }
         };
 
+        // Global variables to store context between steps
+        let currentCancellationReason = '';
+        let currentCustomerHistory = '';
+        let currentCancellationType = '';
+        let currentStrategyFocus = '';
+
         // --- Theme Management ---
         const THEME_KEY = 'retentionBotTheme';
 
-        /**
-         * Initializes the theme based on local storage or system preference.
-         */
         function initTheme() {
-            // 1. Check local storage
             let theme = localStorage.getItem(THEME_KEY);
-
-            // 2. If no preference, check system preference
             if (!theme) {
                 theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
             }
-
-            // 3. Apply the theme
             applyTheme(theme);
         }
 
-        /**
-         * Applies the given theme (light or dark) to the body and updates localStorage.
-         * @param {string} theme - 'light' or 'dark'.
-         */
         function applyTheme(theme) {
             const body = document.body;
             if (theme === 'dark') {
@@ -189,32 +206,21 @@
                 localStorage.setItem(THEME_KEY, 'light');
             }
             updateThemeIcon(theme);
-            // Re-create lucide icons to ensure theme icon is rendered correctly
             lucide.createIcons();
         }
 
-        /**
-         * Toggles the current theme and persists the choice.
-         */
         function toggleTheme() {
             const currentTheme = document.body.classList.contains('dark') ? 'dark' : 'light';
             const newTheme = currentTheme === 'light' ? 'dark' : 'light';
             applyTheme(newTheme);
         }
 
-        /**
-         * Updates the Lucide icon based on the current theme.
-         * @param {string} theme - 'light' or 'dark'.
-         */
         function updateThemeIcon(theme) {
             const iconElement = document.getElementById('theme-icon');
             if (iconElement) {
-                // Remove all lucide data-lucide attributes first
                 if (iconElement.querySelector('svg')) {
                     iconElement.innerHTML = '';
                 }
-                // Set new icon based on the intended *next* action
-                // Show 'sun' icon when currently dark (user can click to switch to light)
                 iconElement.setAttribute('data-lucide', theme === 'dark' ? 'sun' : 'moon');
             }
         }
@@ -226,28 +232,43 @@
          * Sets the state of the UI elements (loading, button, error).
          * @param {boolean} isLoading - Whether the application is currently loading.
          * @param {string|null} error - The error message to display, if any.
+         * @param {string} mode - 'strategy' or 'email' to control which loading/error indicator is used.
          */
-        function setUIState(isLoading, error = null) {
+        function setUIState(isLoading, error = null, mode = 'strategy') {
             const button = document.getElementById('generateButton');
-            const loading = document.getElementById('loadingIndicator');
+            const loading = document.getElementById(mode === 'strategy' ? 'loadingIndicator' : 'email-loading-indicator');
             const errorMsg = document.getElementById('errorMessage');
 
-            button.disabled = isLoading;
-            button.classList.toggle('opacity-50', isLoading);
+            if (mode === 'strategy') {
+                button.disabled = isLoading;
+                button.classList.toggle('opacity-50', isLoading);
+                document.getElementById('email-crafter-section').classList.add('hidden'); // Hide email on new strategy search
+            }
+            
             loading.classList.toggle('hidden', !isLoading);
-            errorMsg.classList.add('hidden');
-            if (error) {
-                errorMsg.textContent = error;
-                errorMsg.classList.remove('hidden');
+            
+            if (mode === 'strategy') {
+                errorMsg.classList.add('hidden');
+                if (error) {
+                    errorMsg.textContent = error;
+                    errorMsg.classList.remove('hidden');
+                }
+            } else {
+                 // For email errors, display a simple message in the output box
+                 if (error) {
+                    document.getElementById('email-output').textContent = `Error drafting email: ${error}`;
+                    document.getElementById('copyEmailButton').classList.add('hidden');
+                 }
             }
         }
 
         /**
          * Calls the Gemini API with exponential backoff for retries.
          * @param {object} payload - The API request body.
-         * @returns {Promise<Array<object>>} - The parsed JSON array of strategies.
+         * @param {string} mode - 'strategy' or 'email' to control error messaging.
+         * @returns {Promise<any>} - The parsed JSON array or raw text response.
          */
-        async function fetchStrategyWithRetry(payload) {
+        async function fetchAIContent(payload, mode = 'strategy') {
             for (let i = 0; i < maxRetries; i++) {
                 try {
                     const response = await fetch(API_URL, {
@@ -258,54 +279,56 @@
 
                     if (!response.ok) {
                         if (response.status === 429 && i < maxRetries - 1) {
-                            // Too Many Requests, implement exponential backoff
                             const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
                             await new Promise(resolve => setTimeout(resolve, delay));
-                            continue; // Retry
+                            continue;
                         }
                         const errorData = await response.json();
                         throw new Error(`API Request failed: ${errorData.error?.message || response.statusText}`);
                     }
 
                     const result = await response.json();
-                    const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    const content = result.candidates?.[0]?.content?.parts?.[0]?.text;
                     
-                    if (!jsonText) {
-                         throw new Error("Received an empty or malformed response from the AI model. Check system prompt adherence.");
+                    if (!content) {
+                         throw new Error("Received an empty or malformed response from the AI model.");
                     }
                     
-                    return JSON.parse(jsonText);
+                    if (mode === 'strategy') {
+                        return JSON.parse(content);
+                    } else {
+                        return content; // Return raw text for email
+                    }
 
                 } catch (e) {
-                    // Log the attempt failure but only throw final error after max retries
                     console.error(`Attempt ${i + 1} failed:`, e);
                     if (i === maxRetries - 1) {
-                        throw new Error(`Failed to connect to AI after ${maxRetries} attempts. Error: ${e.message}`);
+                        throw new Error(e.message);
                     }
                 }
             }
         }
 
         /**
-         * Handles the main logic for generating the retention strategy.
+         * Handles the main logic for generating the retention strategy (Step 1).
          */
         async function generateStrategy() {
-            setUIState(true);
-            document.getElementById('output-section').innerHTML = ''; // Clear previous output
+            setUIState(true, null, 'strategy');
+            document.getElementById('output-section').innerHTML = '';
 
-            const reason = document.getElementById('cancellationReason').value.trim();
-            const history = document.getElementById('customerHistory').value.trim();
-            const focus = document.getElementById('strategyFocus').value;
-            const type = document.getElementById('cancellationType').value; // Get the new cancellation type
+            // Store context globally
+            currentCancellationReason = document.getElementById('cancellationReason').value.trim();
+            currentCustomerHistory = document.getElementById('customerHistory').value.trim();
+            currentStrategyFocus = document.getElementById('strategyFocus').value;
+            currentCancellationType = document.getElementById('cancellationType').value;
 
-            if (!reason || !history) {
-                setUIState(false, "Please fill in both the reason for cancellation and customer history.");
+            if (!currentCancellationReason || !currentCustomerHistory) {
+                setUIState(false, "Please fill in both the reason for cancellation and customer history.", 'strategy');
                 return;
             }
 
-            // --- CRITICAL CHECK FOR EXTERNAL HOSTING ---
             if (API_KEY === "") {
-                setUIState(false, "API Configuration Error: The AI service failed to authenticate. If running externally, please ensure your Gemini API key is configured.");
+                setUIState(false, "API Configuration Error: The AI service failed to authenticate.", 'strategy');
                 return;
             }
 
@@ -315,6 +338,7 @@
                 
                 // --- MEMBERSHIP CANCELLATION RULES (SUBSCRIPTION) ---
                 - Financial/Affordability (Membership): up to 1 Month free OR 25% discount for 4 months. MAXIMUM: 50% discount for 3 months OR 25% for 6 months. Suggest Pause Option.
+                - Pause Policy: Standard **3 months max per calendar year**. Extensions possible for severe reasons (e.g., pregnancy, medical injury, severe travel) based on case severity.
                 - Lack of motivation/Suitable classes (Membership): 1 Month free OR accessory < $40 (Workout Mat, Bands, Heart Rate Monitor). Suggest challenges/programs.
                 - BYOD/Tempo Trainer: Follow above Membership rules. Tempo Trainer members may receive a Giftbox.
 
@@ -329,8 +353,8 @@
                 // Winback Patterns for Injury/Dormancy (Membership Focus):
                 - Pattern A ("Active before injury"): Focus on strength built. Offer recovery tools (phone-only, 10-15m classes, injury mods). Use offer: Tempo Bands set + 25% off for 4 months.
                 - Pattern B ("Long-time member but dormant"): Focus on no-judgment, easy restart. Highlight 10-15 min sessions. Use Offer: Tempo Bands set + 25% off for 4 months.
-                - Pattern C ("New member - barely used, injured"): Focus on bad timing. Highlight short, safe ways to try. Use Offer: 1 free month or 50% off for 2 months + yoga starter kit.
-                - Pattern D ("Started strong then lost motivation"): Focus on nostalgia, reclaiming spark. Highlight low-impact flows, micro-sessions. Use Offer: yoga kit + 25% off for 3 months.
+                - Pattern C ("New member - barely used, injured"): Focus on bad timing. Highlight short, safe ways to try. Use offer: 1 free month or 50% off for 2 months + yoga starter kit.
+                - Pattern D ("Started strong then lost motivation"): Focus on nostalgia, reclaiming spark. Highlight low-impact flows, micro-sessions. Use offer: yoga kit + 25% off for 3 months.
 
                 --- CONTENT & ACCESSORIES (FOR RECOMMENDATIONS) ---
 
@@ -343,28 +367,34 @@
             `;
 
 
-            // --- ENHANCED SYSTEM PROMPT ---
-            const systemPrompt = `You are a world-class Customer Retention Specialist and a master of turning cancellations into long-term customer loyalty at a premium fitness company. Your core duty is to create **highly personalized** strategies.
-            
+            // --- NEW ENHANCED SYSTEM PROMPT (FORCES 3-PHASE EXPERT STRATEGY GENERATION) ---
+            const systemPrompt = `You are a **highly experienced, innovative Customer Retention and Marketing Strategist** at a premium fitness company (Tempo). Your core duty is to generate **exceptionally unique and highly personalized** strategies.
+
             **KNOWLEDGE BASE:**
             ${concessionData}
 
-            **Retention Rules & Guidelines:**
-            1. **Conciseness is Critical:** Generate all text fields (strategyName, coreOffer, talkingPoints, rebuttalResponse, complianceNote) **as concisely as possible** to ensure the entire JSON response fits within the character limits. Avoid verbose, multi-sentence descriptions where a short, clear phrase will suffice.
-            2. **Personalization & Pattern:** Based on the 'Customer Tenure/History' and 'Cancellation Reason', determine which 'Winback Pattern' or 'Compliance Rule' in the KNOWLEDGE BASE is most relevant. The talking points must be highly tailored, using the customer's specific history/issue (e.g., 'your 700 classes' or 'the delivery delay') to structure the pitch.
-            3. **Strategy Type Differentiation:**
-               - If **Cancellation Type is 'Membership'**: The strategy must focus on re-engagement using fitness content and programs (Fitness First), supported by a compliant concession (using Winback Patterns).
-               - If **Cancellation Type is 'Order/Return'**: The strategy must focus on de-escalation, solving the hardware/logistics issue, and offering compliant credits/refunds/gifts (using Order/Return Compliance Rules).
-            4. **Compliance is Mandatory:** The 'coreOffer' and 'complianceNote' fields **MUST** strictly adhere to the compensation rules (HARD LIMITS) based on the *Cancellation Type* and *Reason*.
-            5. **Generate exactly 3 diverse strategies.**
-            6. The final output must be a valid JSON array matching the provided schema, with no surrounding text or markdown.
+            **Internal 3-Phase Strategy Generation Process:**
+            1. **PHASE 1 (Generate Draft):** Create 3 initial draft strategies using the provided data, ensuring compliance with HARD LIMITS.
+            2. **PHASE 2 (Expert Review & Refinement):** Critique the 3 drafts internally based on the following high-level principles:
+                - **Creative Product Leverage:** Does the strategy utilize a hidden or under-appreciated product feature (like Phone-Only Mode, specific collections, or injury mods) in a **fresh and compelling way** that directly counters the customer's reason?
+                - **Tempo Value Alignment:** Do the talking points align with a brand ethos of **non-judgment, inspiration, long-term health, and celebrating small wins**? Avoid simple policy recitation.
+                - **Marketing Hook:** Is the primary pitch strong, memorable, and framed around an **aspirational outcome** rather than just a discount?
+            3. **PHASE 3 (Final Output):** Take the refined strategies and output them concisely into the final JSON array.
+
+            **Retention Rules & Guidelines for Final Output:**
+            1. **Conciseness is Critical:** Generate all text fields (strategyName, coreOffer, talkingPoints, rebuttalResponse, complianceNote) **as concisely as possible** to ensure the entire JSON response fits within the character limits.
+            2. **Strategy Type Differentiation:**
+               - If **Cancellation Type is 'Membership'**: Focus on re-engagement (Fitness First), supported by a compliant concession.
+               - If **Cancellation Type is 'Order/Return'**: Focus on de-escalation, solving hardware/logistics issue, and offering compliant credits/refunds/gifts.
+            3. **Compliance is Mandatory:** The 'coreOffer' and 'complianceNote' fields **MUST** strictly adhere to the compensation rules (HARD LIMITS).
+            4. The final output must be a valid JSON array matching the provided schema, with no surrounding text or markdown.
             `;
             
-            const userQuery = `Customer Cancellation Reason: ${reason}.
-            Customer Tenure/History: ${history}.
-            Cancellation Type: ${type}.
+            const userQuery = `Customer Cancellation Reason: ${currentCancellationReason}.
+            Customer Tenure/History: ${currentCustomerHistory}.
+            Cancellation Type: ${currentCancellationType}.
             
-            Generate 3 retention strategies focusing on the ${focus} approach.`;
+            Generate 3 retention strategies focusing on the ${currentStrategyFocus} approach, ensuring the final output reflects the highest standards of marketing creativity and brand values defined in the system prompt.`;
 
             const payload = {
                 contents: [{ parts: [{ text: userQuery }] }],
@@ -376,22 +406,21 @@
             };
 
             try {
-                const strategies = await fetchStrategyWithRetry(payload);
+                const strategies = await fetchAIContent(payload, 'strategy');
                 displayStrategies(strategies);
             } catch (e) {
-                setUIState(false, e.message);
+                setUIState(false, e.message, 'strategy');
             } finally {
-                setUIState(false);
+                setUIState(false, null, 'strategy');
             }
         }
 
         /**
-         * Renders the generated strategies into the output area, applying dark mode classes dynamically.
+         * Renders the generated strategies into the output area.
          * @param {Array<object>} strategies - The array of structured retention strategies.
          */
         function displayStrategies(strategies) {
             const outputDiv = document.getElementById('output-section');
-            // Added dark mode text color for heading
             outputDiv.innerHTML = `
                 <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-6 border-b-2 border-indigo-200 dark:border-indigo-700 pb-2 transition-colors duration-300">Generated Retention Plan</h2>
             `;
@@ -404,18 +433,18 @@
 
             strategies.forEach((strategy, index) => {
                 const strategyElement = document.createElement('div');
-                // Added dark mode background and transition
                 strategyElement.classList.add('bg-white', 'dark:bg-gray-800', 'p-6', 'rounded-xl', 'shadow-xl', 'mb-8', 'border-l-4', 'border-indigo-500', 'transition-colors', 'duration-300');
 
-                // Dynamic properties for strategy titles
                 const titleColor = ['bg-indigo-50', 'bg-blue-50', 'bg-green-50'][index % 3];
                 const iconName = ['trending-up', 'check-circle', 'refresh-cw'][index % 3];
+                
+                // Safely convert the object to a JSON string for passing to the craftEmail function
+                const strategyJsonString = JSON.stringify(strategy).replace(/"/g, '&quot;');
 
-                // Note: The template literal uses the strategy object properties to build the card structure.
+
                 strategyElement.innerHTML = `
                     <div class="flex items-center space-x-3 mb-4 p-3 rounded-lg ${titleColor}">
                         <i data-lucide="${iconName}" class="w-6 h-6 text-indigo-600"></i>
-                        <!-- Added dark mode text color for strategy title -->
                         <h3 class="text-xl font-bold text-gray-800 dark:text-white">${strategy.strategyName}</h3>
                     </div>
 
@@ -433,7 +462,6 @@
                                 <i data-lucide="message-square" class="w-4 h-4 mr-2 text-gray-500"></i>
                                 Agent Talking Points (Fitness & Value Focus)
                             </p>
-                            <!-- Added dark mode text color for talking points list -->
                             <ul class="list-none space-y-2 text-gray-700 dark:text-white">
                                 ${strategy.talkingPoints.map(point => 
                                     `<li class="flex items-start">
@@ -449,23 +477,122 @@
                                 <i data-lucide="alert-triangle" class="w-4 h-4 mr-2 text-yellow-600"></i>
                                 LIKELY CUSTOMER REBUTTAL
                             </p>
-                            <!-- Added dark mode text color for italic rebuttal text -->
                             <p class="text-gray-700 italic dark:text-gray-200">"&quot;${strategy.likelyRebuttal}&quot;"</p>
                             
                             <p class="text-sm font-semibold text-green-700 mt-3 mb-1 flex items-center">
                                 <i data-lucide="zap" class="w-4 h-4 mr-2 text-green-600"></i>
                                 AGENT RESPONSE
                             </p>
-                            <!-- Added dark mode text color for response text -->
                             <p class="text-gray-800 font-medium dark:text-white">${strategy.rebuttalResponse}</p>
                         </div>
                     </div>
+                    
+                    <!-- New Button for Step 2 -->
+                    <button onclick="craftEmail('${strategyJsonString}')" class="mt-4 w-full bg-green-500 text-white py-2 rounded-lg font-semibold hover:bg-green-600 transition duration-150 shadow-md flex items-center justify-center">
+                        <i data-lucide="send" class="w-5 h-5 mr-2"></i>
+                        Draft Winback Email using this Strategy
+                    </button>
                 `;
                 outputDiv.appendChild(strategyElement);
             });
-            // Re-initialize icons so the data-lucide attributes in the generated HTML are rendered.
             lucide.createIcons(); 
         }
+
+        /**
+         * Handles the email crafting process (Step 2).
+         * @param {string} strategyJson - JSON string of the selected strategy.
+         */
+        async function craftEmail(strategyJson) {
+            setUIState(true, null, 'email');
+            document.getElementById('email-output').textContent = '';
+            document.getElementById('email-crafter-section').classList.remove('hidden');
+            document.getElementById('copyEmailButton').classList.remove('hidden'); // Show copy button
+
+            const selectedStrategy = JSON.parse(strategyJson.replace(/&quot;/g, '"'));
+            
+            // --- EMAIL CRAFTING SYSTEM PROMPT (UPDATED FOR HUMAN-CENTERED COPY) ---
+            const emailSystemPrompt = `You are a **Senior Retention Specialist and Human-Centered Copywriter** for a premium fitness brand (Tempo). Your goal is to write a **high-conversion, customer-centric winback email** (200-250 words max) based on the provided strategy.
+
+            **Email Structure Rules:**
+            1. **Tone:** The tone must be **natural, human, highly empathetic, and non-judgmental.** Use contractions and conversational language. Focus on the customer's perspective and frame the offer as support for their individual journey.
+            2. **Personalization & Context:** Reference the 'Cancellation Reason' and 'Customer Tenure/History' from the context naturally in the opening.
+            3. **Preemptive Defense:** Smoothly integrate the core message of the 'likelyRebuttal' and the 'rebuttalResponse' to address their probable counter-argument before they raise it.
+            4. **Call to Action:** The final paragraph must clearly present the 'Core Offer' and include a soft, clear Call to Action.
+            5. **Subject Line:** Generate a short, highly personalized, and compelling subject line (max 10 words).
+            6. **Format:** Output the response as clean, plain text with distinct lines for the Subject and Body, ready to be copied directly into an email client. Do NOT use markdown. Start with the Subject Line, followed by the Body.
+
+            **Context for Email:**
+            Cancellation Reason: ${currentCancellationReason}
+            Customer History: ${currentCustomerHistory}
+            Cancellation Type: ${currentCancellationType}
+            `;
+
+            const emailQuery = `Draft the complete email (Subject Line and Body) using the following strategy JSON:
+            ${JSON.stringify(selectedStrategy, null, 2)}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: emailQuery }] }],
+                systemInstruction: { parts: [{ text: emailSystemPrompt }] },
+            };
+
+            try {
+                const draftedEmail = await fetchAIContent(payload, 'email');
+                displayEmail(draftedEmail);
+            } catch (e) {
+                setUIState(false, e.message, 'email');
+            } finally {
+                setUIState(false, null, 'email');
+            }
+        }
+
+        /**
+         * Renders the drafted email and handles the clipboard functionality.
+         * @param {string} emailText - The raw text of the drafted email.
+         */
+        function displayEmail(emailText) {
+            const outputDiv = document.getElementById('email-output');
+            outputDiv.textContent = emailText;
+            document.getElementById('copyEmailButton').dataset.email = emailText;
+        }
+
+        /**
+         * Copies the email text to the user's clipboard.
+         */
+        function copyEmailToClipboard() {
+            const emailText = document.getElementById('email-output').textContent;
+            
+            // Use execCommand for broader compatibility in iframe environments
+            const textArea = document.createElement("textarea");
+            textArea.value = emailText;
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                const msg = successful ? 'Copied successfully!' : 'Failed to copy.';
+                
+                // Show temporary success feedback on the button
+                const button = document.getElementById('copyEmailButton');
+                const originalText = button.innerHTML;
+                button.innerHTML = `<i data-lucide="check" class="w-5 h-5 mr-2"></i> ${msg}`;
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    lucide.createIcons();
+                }, 1500);
+
+            } catch (err) {
+                console.error('Copy command failed:', err);
+                // Fallback UI alert/message (without using window.alert)
+                document.getElementById('errorMessage').textContent = 'Copy failed. Please manually select and copy the text.';
+                document.getElementById('errorMessage').classList.remove('hidden');
+            } finally {
+                document.body.removeChild(textArea);
+                lucide.createIcons();
+            }
+        }
+
 
         // Initialize theme and icons when the content is loaded
         document.addEventListener('DOMContentLoaded', () => {
