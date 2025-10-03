@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RetentionBot: Strategy Helper</title>
+    <!-- Load Montserrat Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet"> 
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -13,8 +15,10 @@
             theme: {
                 extend: {
                     colors: {
-                        'primary-indigo': '#4f46e5',
-                        'primary-dark-indigo': '#4338ca',
+                        // NEW BROWN ACCENT THEME
+                        'accent-brown': '#70594B', // Sienna/Cocoa tone
+                        'accent-brown-dark': '#554238',
+                        'accent-brown-light': '#D6C9C2',
                     },
                 }
             }
@@ -23,22 +27,47 @@
     <!-- Load Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
+        /* BASE STYLES */
         :root {
-            --primary: #4f46e5;
-            --primary-dark: #4338ca;
+            --accent: #70594B;
+            --accent-dark: #554238;
         }
         body {
-            font-family: 'Inter', sans-serif;
-            /* Default Light Mode Background */
-            background-color: #f8f9fb; 
+            /* NEW FONT */
+            font-family: 'Montserrat', sans-serif;
+            /* NEW LIGHT MODE BACKGROUND: Soft Gray */
+            background-color: #f5f5f5; 
         }
-        /* Dark mode background defined by JS adding the 'dark' class */
+        /* NEW DARK MODE BACKGROUND: Deep Charcoal */
         body.dark {
-            background-color: #111827; /* Tailwind gray-900 */
+            background-color: #1c1c1c; 
         }
+
+        /* CUSTOM ANIMATIONS FOR BUTTONS (Pulse/Pop) */
+        .pulse-on-hover {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .pulse-on-hover:hover {
+            transform: scale(1.01); /* Gentle pop out */
+            /* Custom brown shadow using the defined accent color */
+            box-shadow: 0 10px 15px -3px rgba(112, 89, 75, 0.5), 0 4px 6px -2px rgba(112, 89, 75, 0.25); 
+        }
+        /* Ensure the copy button uses its own color for animation */
+        .copy-pulse-on-hover:hover {
+             transform: scale(1.01);
+             /* Custom green shadow */
+             box-shadow: 0 10px 15px -3px rgba(22, 163, 74, 0.5), 0 4px 6px -2px rgba(22, 163, 74, 0.25); 
+        }
+
         .email-display {
             white-space: pre-wrap;
             word-wrap: break-word;
+        }
+        .email-container {
+            border: 1px solid var(--accent-brown);
+        }
+        .dark .email-container {
+            border: 1px solid var(--accent-brown-dark);
         }
     </style>
 </head>
@@ -49,59 +78,80 @@
         <!-- Added 'relative' to position the toggle button -->
         <header class="text-center mb-8 relative">
             <!-- Dark Mode Toggle Button -->
-            <button onclick="toggleTheme()" class="absolute right-0 top-0 p-2 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition duration-150 rounded-full">
+            <button onclick="toggleTheme()" class="absolute right-0 top-0 p-2 text-gray-700 dark:text-gray-300 hover:text-accent-brown dark:hover:text-accent-brown-light transition duration-150 rounded-full">
                 <i id="theme-icon" data-lucide="moon" class="w-6 h-6"></i>
             </button>
             
-            <div class="flex items-center justify-center space-x-2 text-indigo-600">
+            <!-- Logo color updated to the new accent brown -->
+            <div class="flex items-center justify-center space-x-2 text-accent-brown">
                 <i data-lucide="shield-check" class="w-8 h-8"></i>
-                <!-- Added dark mode text color for heading -->
                 <h1 class="text-3xl font-extrabold text-gray-800 dark:text-white">RetentionBot AI</h1>
             </div>
-            <!-- Added dark mode text color for subtitle -->
             <p class="text-gray-500 mt-2 dark:text-gray-300">Generate tailored customer save strategies instantly.</p>
         </header>
 
         <!-- Main Input and Control Area -->
-        <!-- Added dark mode background and border for input section -->
-        <div id="input-section" class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-indigo-100/50 dark:border-indigo-800/50 transition-colors duration-300">
-            <!-- NEW: Cancellation Type Selector -->
+        <div id="input-section" class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-300/50 dark:border-gray-700/50 transition-colors duration-300">
+            <!-- New Input Fields -->
             <div class="space-y-4 mb-6">
+                <!-- Row 1: Cancellation Type and LTV -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="cancellationType" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cancellation Type</label>
+                        <select id="cancellationType" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-accent-brown focus:border-accent-brown p-3 text-gray-800 dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                            <option value="Membership">Membership Cancellation (Subscription/App Access)</option>
+                            <option value="Order/Return">Order or Return Request (Studio/Move Hardware)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="ltvTier" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Customer LTV Tier</label>
+                        <select id="ltvTier" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-accent-brown focus:border-accent-brown p-3 text-gray-800 dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                            <option value="Average">Average LTV</option>
+                            <option value="Low">Low LTV / New Customer</option>
+                            <option value="High/VIP">High LTV / VIP Customer (Prioritize Retention)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Row 2: Product Ownership Checkboxes -->
                 <div>
-                    <label for="cancellationType" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cancellation Type</label>
-                    <select id="cancellationType" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3 text-gray-800 dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                        <option value="Membership">Membership Cancellation (Subscription/App Access)</option>
-                        <option value="Order/Return">Order or Return Request (Studio/Move Hardware)</option>
-                    </select>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Products Owned (For Targeted Features)</label>
+                    <div class="flex flex-wrap gap-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                        <div class="flex items-center">
+                            <input id="ownsStudio" type="checkbox" value="Studio" class="h-4 w-4 text-accent-brown border-gray-300 rounded focus:ring-accent-brown dark:bg-gray-600 dark:border-gray-500">
+                            <label for="ownsStudio" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Studio</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input id="ownsMove" type="checkbox" value="Move" class="h-4 w-4 text-accent-brown border-gray-300 rounded focus:ring-accent-brown dark:bg-gray-600 dark:border-gray-500">
+                            <label for="ownsMove" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Move</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input id="ownsBYOD" type="checkbox" value="BYOD" class="h-4 w-4 text-accent-brown border-gray-300 rounded focus:ring-accent-brown dark:bg-gray-600 dark:border-gray-500" checked>
+                            <label for="ownsBYOD" class="ml-2 text-sm text-gray-700 dark:text-gray-300">BYOD (App Only)</label>
+                        </div>
+                    </div>
                 </div>
             </div>
             
-            <!-- Added dark mode text color and border color -->
-            <h2 class="text-xl font-semibold mb-4 text-gray-700 dark:text-white border-b pb-2 dark:border-indigo-700">Customer Context</h2>
+            <h2 class="text-xl font-semibold mb-4 text-gray-700 dark:text-white border-b pb-2 dark:border-accent-brown">Context & Strategy Focus</h2>
             
             <div class="space-y-4 mb-6">
                 <!-- Cancellation Reason -->
                 <div>
-                    <!-- Added dark mode text color for label -->
                     <label for="cancellationReason" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Customer's Reason for Cancelling</label>
-                    <!-- Added dark mode styling for textarea -->
-                    <textarea id="cancellationReason" rows="3" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3 text-gray-800 dark:bg-gray-700 dark:text-white dark:border-gray-600" placeholder="e.g., 'Price too high, competitor X is cheaper,' or 'Doesn't use Feature Y enough.'"></textarea>
+                    <textarea id="cancellationReason" rows="3" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-accent-brown focus:border-accent-brown p-3 text-gray-800 dark:bg-gray-700 dark:text-white dark:border-gray-600" placeholder="e.g., 'Price too high, competitor X is cheaper,' or 'Doesn't use Feature Y enough.'"></textarea>
                 </div>
 
                 <!-- Customer History -->
                 <div>
-                    <!-- Added dark mode text color for label -->
                     <label for="customerHistory" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Customer Tenure and History</label>
-                    <!-- Added dark mode styling for textarea -->
-                    <textarea id="customerHistory" rows="2" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3 text-gray-800 dark:bg-gray-700 dark:text-white dark:border-gray-600" placeholder="e.g., '5 years, high LTV, 0 support tickets,' or '2 months, low usage, 5 recent billing complaints.'"></textarea>
+                    <textarea id="customerHistory" rows="2" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-accent-brown focus:border-accent-brown p-3 text-gray-800 dark:bg-gray-700 dark:text-white dark:border-gray-600" placeholder="e.g., '5 years, high LTV, 0 support tickets,' or '2 months, low usage, 5 recent billing complaints.'"></textarea>
                 </div>
                 
                 <!-- Strategy Focus -->
                 <div>
-                    <!-- Added dark mode text color for label -->
                     <label for="strategyFocus" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Desired Strategy Focus</label>
-                    <!-- Added dark mode styling for select -->
-                    <select id="strategyFocus" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3 text-gray-800 dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                    <select id="strategyFocus" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-accent-brown focus:border-accent-brown p-3 text-gray-800 dark:bg-gray-700 dark:text-white dark:border-gray-600">
                         <option value="Value-Focused">Value-Focused (Focus on hidden benefits/ROI)</option>
                         <option value="Discount-Focused">Discount-Focused (Prioritize price reduction offers)</option>
                         <option value="Product-Focused">Product-Focused (Solve a feature/usability issue)</option>
@@ -114,13 +164,15 @@
                 </div>
             </div>
 
-            <button onclick="generateStrategy()" id="generateButton" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition duration-150 shadow-md flex items-center justify-center disabled:bg-indigo-400">
+            <!-- Button colors updated to brown accent, added pulse animation -->
+            <button onclick="generateStrategy()" id="generateButton" class="w-full bg-accent-brown text-white py-3 rounded-lg font-semibold hover:bg-accent-brown-dark transition duration-150 shadow-md flex items-center justify-center disabled:bg-accent-brown-light pulse-on-hover">
                 <i data-lucide="sparkles" class="w-5 h-5 mr-2"></i>
                 Generate Save Strategies
             </button>
             
-            <div id="loadingIndicator" class="hidden mt-4 text-center text-indigo-600 font-medium">
-                <div class="inline-block animate-spin rounded-full h-6 w-6 border-4 border-indigo-500 border-t-transparent mr-2"></div>
+            <!-- Loading indicator color updated to brown accent -->
+            <div id="loadingIndicator" class="hidden mt-4 text-center text-accent-brown font-medium">
+                <div class="inline-block animate-spin rounded-full h-6 w-6 border-4 border-accent-brown border-t-transparent mr-2"></div>
                 Analyzing data and generating personalized scripts...
             </div>
             
@@ -132,25 +184,6 @@
             <!-- Strategies will be inserted here -->
         </div>
 
-        <!-- Email Crafter Section (Step 2) -->
-        <div id="email-crafter-section" class="hidden mt-8 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-green-100/50 dark:border-green-800/50 transition-colors duration-300">
-            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 border-b-2 border-green-400 pb-2 flex items-center">
-                <i data-lucide="mail-check" class="w-6 h-6 mr-2 text-green-600"></i>
-                Expert Winback Email Draft
-            </h2>
-            <div id="email-loading-indicator" class="hidden text-center text-green-600 font-medium my-4">
-                <div class="inline-block animate-spin rounded-full h-6 w-6 border-4 border-green-500 border-t-transparent mr-2"></div>
-                Crafting personalized copy...
-            </div>
-            <div id="email-output" class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-800 dark:text-white email-display">
-                <!-- Drafted email will go here -->
-            </div>
-            <button onclick="copyEmailToClipboard()" id="copyEmailButton" class="mt-4 w-full bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700 transition duration-150 shadow-md flex items-center justify-center">
-                <i data-lucide="clipboard" class="w-5 h-5 mr-2"></i>
-                Copy Email to Clipboard
-            </button>
-        </div>
-
     </div>
 
     <script>
@@ -158,7 +191,7 @@
         const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=" + API_KEY;
         const maxRetries = 3;
 
-        // --- JSON Schema for Structured Output ---
+        // --- JSON Schema for Structured Output (NOW INCLUDES DRAFTED EMAIL) ---
         const retentionSchema = {
             type: "ARRAY",
             description: "A list of 3 distinct customer retention strategies.",
@@ -167,6 +200,8 @@
                 properties: {
                     "strategyName": { "type": "STRING", "description": "A concise, actionable title for the strategy (e.g., 'The Value Re-Pitch')." },
                     "coreOffer": { "type": "STRING", "description": "The specific proposal to save the customer (e.g., '30% off for 3 months')." },
+                    "saveLikelihoodScore": { "type": "NUMBER", "description": "The AI's predicted save likelihood score for this strategy (1-5, where 5 is highest)." },
+                    "costToCompany": { "type": "STRING", "description": "The financial impact of the offer: Low, Medium, or High." },
                     "talkingPoints": {
                         "type": "ARRAY",
                         "description": "3-5 scripted bullet points focusing on value and empathy for the agent to use, and incorporating relevant product recommendations or next steps.",
@@ -174,10 +209,11 @@
                     },
                     "likelyRebuttal": { "type": "STRING", "description": "Anticipate a likely counter-argument from the customer." },
                     "rebuttalResponse": { "type": "STRING", "description": "A prepared response to handle the rebuttal." },
-                    "complianceNote": { "type": "STRING", "description": "A quick note confirming the offer is within the bounds of the compensation guidelines."}
+                    "complianceNote": { "type": "STRING", "description": "A quick note confirming the offer is within the bounds of the compensation guidelines."},
+                    "draftedEmail": { "type": "STRING", "description": "The complete, human-centered winback email copy (Subject Line and Body), formatted as plain text, ready for the agent to copy."}
                 },
-                required: ["strategyName", "coreOffer", "talkingPoints", "likelyRebuttal", "rebuttalResponse", "complianceNote"],
-                propertyOrdering: ["strategyName", "coreOffer", "talkingPoints", "likelyRebuttal", "rebuttalResponse", "complianceNote"]
+                required: ["strategyName", "coreOffer", "saveLikelihoodScore", "costToCompany", "talkingPoints", "likelyRebuttal", "rebuttalResponse", "complianceNote", "draftedEmail"],
+                propertyOrdering: ["strategyName", "coreOffer", "saveLikelihoodScore", "costToCompany", "talkingPoints", "likelyRebuttal", "rebuttalResponse", "complianceNote", "draftedEmail"]
             }
         };
 
@@ -186,6 +222,8 @@
         let currentCustomerHistory = '';
         let currentCancellationType = '';
         let currentStrategyFocus = '';
+        let currentLTVTier = '';
+        let currentProductsOwned = [];
 
         // --- Theme Management ---
         const THEME_KEY = 'retentionBotTheme';
@@ -238,29 +276,19 @@
          */
         function setUIState(isLoading, error = null, mode = 'strategy') {
             const button = document.getElementById('generateButton');
-            const loading = document.getElementById(mode === 'strategy' ? 'loadingIndicator' : 'email-loading-indicator');
+            const loading = document.getElementById('loadingIndicator'); // Only one loading indicator now
             const errorMsg = document.getElementById('errorMessage');
 
-            if (mode === 'strategy') {
-                button.disabled = isLoading;
-                button.classList.toggle('opacity-50', isLoading);
-                document.getElementById('email-crafter-section').classList.add('hidden'); // Hide email on new strategy search
-            }
+            // Strategy mode controls everything
+            button.disabled = isLoading;
+            button.classList.toggle('opacity-50', isLoading);
             
             loading.classList.toggle('hidden', !isLoading);
             
-            if (mode === 'strategy') {
-                errorMsg.classList.add('hidden');
-                if (error) {
-                    errorMsg.textContent = error;
-                    errorMsg.classList.remove('hidden');
-                }
-            } else {
-                 // For email errors, display a simple message in the output box
-                 if (error) {
-                    document.getElementById('email-output').textContent = `Error drafting email: ${error}`;
-                    document.getElementById('copyEmailButton').classList.add('hidden');
-                 }
+            errorMsg.classList.add('hidden');
+            if (error) {
+                errorMsg.textContent = error;
+                errorMsg.classList.remove('hidden');
             }
         }
 
@@ -270,7 +298,7 @@
          * @param {string} mode - 'strategy' or 'email' to control error messaging.
          * @returns {Promise<any>} - The parsed JSON array or raw text response.
          */
-        async function fetchAIContent(payload, mode = 'strategy') {
+        async function fetchAIContent(payload) {
             for (let i = 0; i < maxRetries; i++) {
                 try {
                     const response = await fetch(API_URL, {
@@ -296,11 +324,7 @@
                          throw new Error("Received an empty or malformed response from the AI model.");
                     }
                     
-                    if (mode === 'strategy') {
-                        return JSON.parse(content);
-                    } else {
-                        return content; // Return raw text for email
-                    }
+                    return JSON.parse(content);
 
                 } catch (e) {
                     console.error(`Attempt ${i + 1} failed:`, e);
@@ -312,10 +336,10 @@
         }
 
         /**
-         * Handles the main logic for generating the retention strategy (Step 1).
+         * Handles the main logic for generating the retention strategy (Step 1 - now consolidated).
          */
         async function generateStrategy() {
-            setUIState(true, null, 'strategy');
+            setUIState(true);
             document.getElementById('output-section').innerHTML = '';
 
             // Store context globally
@@ -323,14 +347,19 @@
             currentCustomerHistory = document.getElementById('customerHistory').value.trim();
             currentStrategyFocus = document.getElementById('strategyFocus').value;
             currentCancellationType = document.getElementById('cancellationType').value;
+            currentLTVTier = document.getElementById('ltvTier').value;
+
+            // Get checked products
+            currentProductsOwned = Array.from(document.querySelectorAll('#input-section input[type="checkbox"]:checked')).map(cb => cb.value);
+
 
             if (!currentCancellationReason || !currentCustomerHistory) {
-                setUIState(false, "Please fill in both the reason for cancellation and customer history.", 'strategy');
+                setUIState(false, "Please fill in both the reason for cancellation and customer history.");
                 return;
             }
 
             if (API_KEY === "") {
-                setUIState(false, "API Configuration Error: The AI service failed to authenticate.", 'strategy');
+                setUIState(false, "API Configuration Error: The AI service failed to authenticate.");
                 return;
             }
 
@@ -369,35 +398,39 @@
             `;
 
 
-            // --- NEW ENHANCED SYSTEM PROMPT (FORCES 3-PHASE EXPERT STRATEGY GENERATION) ---
-            const systemPrompt = `You are a **highly experienced, innovative Customer Retention and Marketing Strategist** at a premium fitness company (Tempo). Your core duty is to generate **exceptionally unique and highly personalized** strategies.
+            // --- CONSOLIDATED SYSTEM PROMPT (STRATEGY + EMAIL) ---
+            const systemPrompt = `You are a **highly experienced, innovative Customer Retention and Marketing Strategist and Human-Centered Copywriter** for a premium fitness company (Tempo). Your core duty is to generate **exceptionally unique, highly personalized strategies, AND the final email copy** in a single structured output.
 
             **KNOWLEDGE BASE:**
             ${concessionData}
+            
+            **CURRENT CUSTOMER CONTEXT:**
+            - LTV Tier: ${currentLTVTier}
+            - Products Owned: ${currentProductsOwned.join(', ')}
+            - Strategy Focus: ${currentStrategyFocus}
 
-            **Internal 3-Phase Strategy Generation Process:**
-            1. **PHASE 1 (Generate Draft):** Create 3 initial draft strategies using the provided data, ensuring compliance with HARD LIMITS.
-            2. **PHASE 2 (Expert Review & Refinement):** Critique the 3 drafts internally based on the following high-level principles:
-                - **Creative Product Leverage:** Does the strategy utilize a hidden or under-appreciated product feature (like Phone-Only Mode, specific collections, or injury mods) in a **fresh and compelling way** that directly counters the customer's reason?
-                - **Tempo Value Alignment:** Do the talking points align with a brand ethos of **non-judgment, inspiration, long-term health, and celebrating small wins**? Avoid simple policy recitation.
-                - **Marketing Hook:** Is the primary pitch strong, memorable, and framed around an **aspirational outcome** rather than just a discount?
-            3. **PHASE 3 (Final Output):** Take the refined strategies and output them concisely into the final JSON array.
+            **Internal 4-Phase Process (Strategy & Email Creation):**
+            1. **PHASE 1 (Strategy Generation):** Create 3 initial draft strategies using the provided data, ensuring compliance with HARD LIMITS.
+            2. **PHASE 2 (Expert Review & Refinement):** Critique the 3 drafts internally based on Tempo Value Alignment, Creative Product Leverage, Marketing Hook, and LTV Consideration (adjusting save likelihood and offer level).
+            3. **PHASE 3 (Email Copywriting):** For *each* refined strategy, immediately write the final, high-conversion, customer-centric email copy (200-250 words max).
+                - **Email Tone:** Natural, human, empathetic, and non-judgmental. Use contractions.
+                - **Email Content:** Reference Customer History/Reason. Smoothly integrate the 'likelyRebuttal' and 'rebuttalResponse' as a preemptive defense. Clearly present the 'Core Offer' and Call to Action.
+                - **Email Format:** The email should start with the **Subject Line**, followed by the **Body**. Use clean, plain text. Store this entire block in the **\`draftedEmail\`** property.
+            4. **PHASE 4 (Final Output):** Take the refined strategies and their corresponding emails and output them concisely into the final JSON array.
 
             **Retention Rules & Guidelines for Final Output:**
-            1. **Conciseness is Critical:** Generate all text fields (strategyName, coreOffer, talkingPoints, rebuttalResponse, complianceNote) **as concisely as possible** to ensure the entire JSON response fits within the character limits.
-            2. **Concession Wisdom:** **DO NOT** offer the maximum compliant discount as a first approach unless the customer's history/reason warrants aggressive intervention. Accessories (costing < $30) should be prioritized for unmotivated customers. Offers should be presented as clear options, not bundles, unless a specific WinBack Pattern suggests it.
+            1. **Conciseness is Critical:** Generate all text fields **as concisely as possible** for every property (e.g., coreOffer, talkingPoints, etc.).
+            2. **Compliance is Mandatory:** The 'coreOffer' and 'complianceNote' fields **MUST** strictly adhere to the compensation rules (HARD LIMITS).
             3. **Strategy Type Differentiation:**
                - If **Cancellation Type is 'Membership'**: Focus on re-engagement (Fitness First), supported by a compliant concession.
                - If **Cancellation Type is 'Order/Return'**: Focus on de-escalation, solving hardware/logistics issue, and offering compliant credits/refunds/gifts.
-            4. **Compliance is Mandatory:** The 'coreOffer' and 'complianceNote' fields **MUST** strictly adhere to the compensation rules (HARD LIMITS).
-            5. The final output must be a valid JSON array matching the provided schema, with no surrounding text or markdown.
+            4. The final output must be a valid JSON array matching the provided schema, with no surrounding text or markdown.
             `;
             
             const userQuery = `Customer Cancellation Reason: ${currentCancellationReason}.
             Customer Tenure/History: ${currentCustomerHistory}.
-            Cancellation Type: ${currentCancellationType}.
             
-            Generate 3 retention strategies focusing on the ${currentStrategyFocus} approach, ensuring the final output reflects the highest standards of marketing creativity and brand values defined in the system prompt.`;
+            Generate 3 retention strategies now, ranked by highest predicted Save Likelihood.`;
 
             const payload = {
                 contents: [{ parts: [{ text: userQuery }] }],
@@ -409,163 +442,39 @@
             };
 
             try {
-                const strategies = await fetchAIContent(payload, 'strategy');
+                // Fetching the strategies and emails in one go
+                const strategies = await fetchAIContent(payload);
+                
+                // Sort strategies by save likelihood score, highest first (as requested by prompt)
+                strategies.sort((a, b) => b.saveLikelihoodScore - a.saveLikelihoodScore);
                 displayStrategies(strategies);
             } catch (e) {
-                setUIState(false, e.message, 'strategy');
+                setUIState(false, e.message);
             } finally {
-                setUIState(false, null, 'strategy');
+                setUIState(false);
             }
         }
 
         /**
-         * Renders the generated strategies into the output area.
-         * @param {Array<object>} strategies - The array of structured retention strategies.
+         * Generates the star rating HTML based on the score.
+         * @param {number} score - The save likelihood score (1-5).
+         * @returns {string} HTML string for stars.
          */
-        function displayStrategies(strategies) {
-            const outputDiv = document.getElementById('output-section');
-            outputDiv.innerHTML = `
-                <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-6 border-b-2 border-indigo-200 dark:border-indigo-700 pb-2 transition-colors duration-300">Generated Retention Plan</h2>
-            `;
-
-            if (!Array.isArray(strategies) || strategies.length === 0) {
-                 outputDiv.innerHTML += '<p class="text-red-500">Could not parse the strategies. Please try a different prompt or check the console for API errors.</p>';
-                 return;
+        function renderStars(score) {
+            const roundedScore = Math.round(score);
+            let stars = '';
+            for (let i = 1; i <= 5; i++) {
+                const color = i <= roundedScore ? 'text-yellow-400' : 'text-gray-300 dark:text-gray-600';
+                stars += `<i data-lucide="star" class="w-4 h-4 fill-current ${color}"></i>`;
             }
-
-
-            strategies.forEach((strategy, index) => {
-                const strategyElement = document.createElement('div');
-                strategyElement.classList.add('bg-white', 'dark:bg-gray-800', 'p-6', 'rounded-xl', 'shadow-xl', 'mb-8', 'border-l-4', 'border-indigo-500', 'transition-colors', 'duration-300');
-
-                const titleColor = ['bg-indigo-50', 'bg-blue-50', 'bg-green-50'][index % 3];
-                const iconName = ['trending-up', 'check-circle', 'refresh-cw'][index % 3];
-                
-                // Safely convert the object to a JSON string for passing to the craftEmail function
-                const strategyJsonString = JSON.stringify(strategy).replace(/"/g, '&quot;');
-
-
-                strategyElement.innerHTML = `
-                    <div class="flex items-center space-x-3 mb-4 p-3 rounded-lg ${titleColor}">
-                        <i data-lucide="${iconName}" class="w-6 h-6 text-indigo-600"></i>
-                        <h3 class="text-xl font-bold text-gray-800 dark:text-white">${strategy.strategyName}</h3>
-                    </div>
-
-                    <div class="space-y-6">
-                        <!-- Core Offer -->
-                        <div class="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
-                            <p class="text-sm font-semibold text-indigo-700">CORE SAVE OFFER:</p>
-                            <p class="text-lg font-medium text-gray-800 dark:text-white mt-1">${strategy.coreOffer}</p>
-                            <p class="text-xs text-indigo-500 mt-2 font-medium">Compliance Note: ${strategy.complianceNote}</p>
-                        </div>
-
-                        <!-- Talking Points -->
-                        <div>
-                            <p class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2 flex items-center">
-                                <i data-lucide="message-square" class="w-4 h-4 mr-2 text-gray-500"></i>
-                                Agent Talking Points (Fitness & Value Focus)
-                            </p>
-                            <ul class="list-none space-y-2 text-gray-700 dark:text-white">
-                                ${strategy.talkingPoints.map(point => 
-                                    `<li class="flex items-start">
-                                        <i data-lucide="chevron-right" class="w-4 h-4 mt-1 mr-2 text-indigo-400 flex-shrink-0"></i>
-                                        <span>${point}</span>
-                                    </li>`).join('')}
-                            </ul>
-                        </div>
-
-                        <!-- Rebuttal Handling -->
-                        <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                            <p class="text-sm font-semibold text-yellow-700 mb-1 flex items-center">
-                                <i data-lucide="alert-triangle" class="w-4 h-4 mr-2 text-yellow-600"></i>
-                                LIKELY CUSTOMER REBUTTAL
-                            </p>
-                            <p class="text-gray-700 italic dark:text-gray-200">"&quot;${strategy.likelyRebuttal}&quot;"</p>
-                            
-                            <p class="text-sm font-semibold text-green-700 mt-3 mb-1 flex items-center">
-                                <i data-lucide="zap" class="w-4 h-4 mr-2 text-green-600"></i>
-                                AGENT RESPONSE
-                            </p>
-                            <p class="text-gray-800 font-medium dark:text-white">${strategy.rebuttalResponse}</p>
-                        </div>
-                    </div>
-                    
-                    <!-- New Button for Step 2 -->
-                    <button onclick="craftEmail('${strategyJsonString}')" class="mt-4 w-full bg-green-500 text-white py-2 rounded-lg font-semibold hover:bg-green-600 transition duration-150 shadow-md flex items-center justify-center">
-                        <i data-lucide="send" class="w-5 h-5 mr-2"></i>
-                        Draft Winback Email using this Strategy
-                    </button>
-                `;
-                outputDiv.appendChild(strategyElement);
-            });
-            lucide.createIcons(); 
-        }
-
-        /**
-         * Handles the email crafting process (Step 2).
-         * @param {string} strategyJson - JSON string of the selected strategy.
-         */
-        async function craftEmail(strategyJson) {
-            setUIState(true, null, 'email');
-            document.getElementById('email-output').textContent = '';
-            document.getElementById('email-crafter-section').classList.remove('hidden');
-            document.getElementById('copyEmailButton').classList.remove('hidden'); // Show copy button
-
-            const selectedStrategy = JSON.parse(strategyJson.replace(/&quot;/g, '"'));
-            
-            // --- EMAIL CRAFTING SYSTEM PROMPT (UPDATED FOR HUMAN-CENTERED COPY) ---
-            const emailSystemPrompt = `You are a **Senior Retention Specialist and Human-Centered Copywriter** for a premium fitness brand (Tempo). Your goal is to write a **high-conversion, customer-centric winback email** (200-250 words max) based on the provided strategy.
-
-            **Email Structure Rules:**
-            1. **Tone:** The tone must be **natural, human, highly empathetic, and non-judgmental.** Use contractions and conversational language. Focus on the customer's perspective and frame the offer as support for their individual journey.
-            2. **Personalization & Context:** Reference the 'Cancellation Reason' and 'Customer Tenure/History' from the context naturally in the opening.
-            3. **Preemptive Defense:** Smoothly integrate the core message of the 'likelyRebuttal' and the 'rebuttalResponse' to address their probable counter-argument before they raise it.
-            4. **Call to Action:** The final paragraph must clearly present the 'Core Offer' and include a soft, clear Call to Action.
-            5. **Subject Line:** Generate a short, highly personalized, and compelling subject line (max 10 words).
-            6. **Format:** Output the response as clean, plain text with distinct lines for the Subject and Body, ready to be copied directly into an email client. Do NOT use markdown. Start with the Subject Line, followed by the Body.
-
-            **Context for Email:**
-            Cancellation Reason: ${currentCancellationReason}
-            Customer History: ${currentCustomerHistory}
-            Cancellation Type: ${currentCancellationType}
-            
-            **Selected Strategy Focus for Tone:** ${currentStrategyFocus} 
-            `;
-
-            const emailQuery = `Draft the complete email (Subject Line and Body) using the following strategy JSON:
-            ${JSON.stringify(selectedStrategy, null, 2)}`;
-
-            const payload = {
-                contents: [{ parts: [{ text: emailQuery }] }],
-                systemInstruction: { parts: [{ text: emailSystemPrompt }] },
-            };
-
-            try {
-                const draftedEmail = await fetchAIContent(payload, 'email');
-                displayEmail(draftedEmail);
-            } catch (e) {
-                setUIState(false, e.message, 'email');
-            } finally {
-                setUIState(false, null, 'email');
-            }
-        }
-
-        /**
-         * Renders the drafted email and handles the clipboard functionality.
-         * @param {string} emailText - The raw text of the drafted email.
-         */
-        function displayEmail(emailText) {
-            const outputDiv = document.getElementById('email-output');
-            outputDiv.textContent = emailText;
-            document.getElementById('copyEmailButton').dataset.email = emailText;
+            return stars;
         }
 
         /**
          * Copies the email text to the user's clipboard.
+         * @param {string} emailText - The raw text of the drafted email.
          */
-        function copyEmailToClipboard() {
-            const emailText = document.getElementById('email-output').textContent;
-            
+        function copyEmailToClipboard(emailText, buttonElement) {
             // Use execCommand for broader compatibility in iframe environments
             const textArea = document.createElement("textarea");
             textArea.value = emailText;
@@ -578,26 +487,147 @@
                 const msg = successful ? 'Copied successfully!' : 'Failed to copy.';
                 
                 // Show temporary success feedback on the button
-                const button = document.getElementById('copyEmailButton');
-                const originalText = button.innerHTML;
-                button.innerHTML = `<i data-lucide="check" class="w-5 h-5 mr-2"></i> ${msg}`;
+                const originalText = buttonElement.innerHTML;
+                buttonElement.innerHTML = `<i data-lucide="check" class="w-5 h-5 mr-2"></i> ${msg}`;
                 
                 setTimeout(() => {
-                    button.innerHTML = originalText;
+                    buttonElement.innerHTML = originalText;
                     lucide.createIcons();
                 }, 1500);
 
             } catch (err) {
                 console.error('Copy command failed:', err);
-                // Fallback UI alert/message (without using window.alert)
-                document.getElementById('errorMessage').textContent = 'Copy failed. Please manually select and copy the text.';
-                document.getElementById('errorMessage').classList.remove('hidden');
+                alert('Copy failed. Please manually select and copy the text.'); // Fallback alert kept for dev/test context
             } finally {
                 document.body.removeChild(textArea);
                 lucide.createIcons();
             }
         }
 
+        /**
+         * Renders the generated strategies into the output area.
+         * @param {Array<object>} strategies - The array of structured retention strategies.
+         */
+        function displayStrategies(strategies) {
+            const outputDiv = document.getElementById('output-section');
+            outputDiv.innerHTML = `
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-6 border-b-2 border-accent-brown/50 dark:border-accent-brown/70 pb-2 transition-colors duration-300">Generated Retention Plan</h2>
+            `;
+
+            if (!Array.isArray(strategies) || strategies.length === 0) {
+                 outputDiv.innerHTML += '<p class="text-red-500">Could not parse the strategies. Please try a different prompt or check the console for API errors.</p>';
+                 return;
+            }
+
+
+            strategies.forEach((strategy, index) => {
+                const strategyElement = document.createElement('div');
+                strategyElement.classList.add('bg-white', 'dark:bg-gray-800', 'p-6', 'rounded-xl', 'shadow-xl', 'mb-8', 'mt-4', 'border-l-4', 'border-accent-brown', 'transition-colors', 'duration-300');
+
+                // Dynamic background colors updated for brown/sleek theme
+                const titleColorMap = {
+                    0: 'bg-accent-brown-light/60 dark:bg-accent-brown-dark/50',
+                    1: 'bg-gray-200 dark:bg-gray-700/50',
+                    2: 'bg-green-50/60 dark:bg-green-900/50'
+                };
+                const titleColor = titleColorMap[index % 3];
+                const iconName = ['trending-up', 'check-circle', 'refresh-cw'][index % 3];
+                
+                const saveStars = renderStars(strategy.saveLikelihoodScore);
+                const costBadgeColor = strategy.costToCompany === 'High' ? 'bg-red-500' : 
+                                       strategy.costToCompany === 'Medium' ? 'bg-yellow-500' : 'bg-green-500';
+                
+                // Splitting email into subject and body for better display
+                const emailParts = strategy.draftedEmail.split('\n\n');
+                const subjectLine = emailParts[0];
+                const emailBody = emailParts.slice(1).join('\n\n');
+
+                // Create a unique ID for the copy button for easy reference
+                const copyButtonId = `copyBtn-${index}`;
+
+                strategyElement.innerHTML = `
+                    <div class="flex items-center space-x-3 mb-4 p-3 rounded-lg ${titleColor}">
+                        <i data-lucide="${iconName}" class="w-6 h-6 text-accent-brown dark:text-accent-brown-light"></i>
+                        <h3 class="text-xl font-bold text-gray-800 dark:text-white">${strategy.strategyName}</h3>
+                        ${index === 0 ? '<span class="ml-auto px-3 py-1 text-xs font-bold uppercase rounded-full bg-accent-brown text-white">Recommended</span>' : ''}
+                    </div>
+
+                    <div class="space-y-6">
+                        
+                        <!-- Scorecard Row -->
+                        <div class="grid grid-cols-2 gap-4 text-center border-b pb-4 border-gray-200 dark:border-gray-700">
+                            <div>
+                                <p class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Save Likelihood</p>
+                                <div class="flex justify-center space-x-1">${saveStars}</div>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Cost to Company</p>
+                                <span class="px-3 py-1 text-xs font-bold rounded-full text-white ${costBadgeColor}">${strategy.costToCompany.toUpperCase()}</span>
+                            </div>
+                        </div>
+
+                        <!-- Core Offer -->
+                        <div class="p-4 bg-accent-brown-light/40 dark:bg-accent-brown-dark/70 border border-accent-brown-light/80 dark:border-accent-brown-dark rounded-lg">
+                            <p class="text-sm font-semibold text-accent-brown-dark dark:text-accent-brown-light">CORE SAVE OFFER:</p>
+                            <p class="text-lg font-medium text-gray-800 dark:text-white mt-1">${strategy.coreOffer}</p>
+                            <p class="text-xs text-accent-brown dark:text-accent-brown-light mt-2 font-medium">Compliance Note: ${strategy.complianceNote}</p>
+                        </div>
+
+                        <!-- Talking Points -->
+                        <div>
+                            <p class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2 flex items-center">
+                                <i data-lucide="message-square" class="w-4 h-4 mr-2 text-gray-500 dark:text-gray-400"></i>
+                                Agent Talking Points (Fitness & Value Focus)
+                            </p>
+                            <ul class="list-none space-y-2 text-gray-700 dark:text-white">
+                                ${strategy.talkingPoints.map(point => 
+                                    `<li class="flex items-start">
+                                        <i data-lucide="chevron-right" class="w-4 h-4 mt-1 mr-2 text-accent-brown dark:text-accent-brown-light flex-shrink-0"></i>
+                                        <span>${point}</span>
+                                    </li>`).join('')}
+                            </ul>
+                        </div>
+
+                        <!-- Rebuttal Handling -->
+                        <div class="p-4 bg-yellow-50 dark:bg-yellow-900/50 border border-yellow-200 dark:border-yellow-700 rounded-lg">
+                            <p class="text-sm font-semibold text-yellow-700 dark:text-yellow-300 mb-1 flex items-center">
+                                <i data-lucide="alert-triangle" class="w-4 h-4 mr-2 text-yellow-600 dark:text-yellow-400"></i>
+                                LIKELY CUSTOMER REBUTTAL
+                            </p>
+                            <p class="text-gray-700 italic dark:text-gray-200">"&quot;${strategy.likelyRebuttal}&quot;"</p>
+                            
+                            <p class="text-sm font-semibold text-green-700 dark:text-green-300 mt-3 mb-1 flex items-center">
+                                <i data-lucide="zap" class="w-4 h-4 mr-2 text-green-600 dark:text-green-400"></i>
+                                AGENT RESPONSE
+                            </p>
+                            <p class="text-gray-800 font-medium dark:text-white">${strategy.rebuttalResponse}</p>
+                        </div>
+
+                         <!-- Drafted Email Section (New Consolidated Output) -->
+                        <div class="mt-8">
+                            <h4 class="text-lg font-bold text-gray-800 dark:text-white mb-2 flex items-center border-b pb-1">
+                                <i data-lucide="mail" class="w-5 h-5 mr-2 text-accent-brown dark:text-accent-brown-light"></i>
+                                Full Winback Email Draft
+                            </h4>
+                            <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg email-container border-dashed border-2">
+                                <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Subject:</p>
+                                <p class="text-base font-bold text-gray-800 dark:text-white mb-3">${subjectLine}</p>
+                                <div class="text-gray-800 dark:text-white email-display">${emailBody}</div>
+                            </div>
+                            <!-- Copy button triggers copyEmailToClipboard with the full draftedEmail string -->
+                            <button onclick="copyEmailToClipboard(this.dataset.emailText, this)" id="${copyButtonId}" data-email-text="${strategy.draftedEmail.replace(/"/g, '&quot;')}" class="mt-3 w-full bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700 transition duration-150 shadow-md flex items-center justify-center copy-pulse-on-hover">
+                                <i data-lucide="clipboard" class="w-5 h-5 mr-2"></i>
+                                Copy Complete Email
+                            </button>
+                        </div>
+                    </div>
+                `;
+                outputDiv.appendChild(strategyElement);
+                // Attach the strategy.draftedEmail directly to the button element for easy copying
+                document.getElementById(copyButtonId).dataset.emailText = strategy.draftedEmail; 
+            });
+            lucide.createIcons(); 
+        }
 
         // Initialize theme and icons when the content is loaded
         document.addEventListener('DOMContentLoaded', () => {
